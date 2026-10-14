@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
 
 String reliefQuantitySummary(Map<String, dynamic> d) {
-  final mainQuantity = d['quantity'] ?? 'â€”';
+  final mainQuantity = d['quantity'] ?? '—';
   final additional = (d['additional_resource'] ??
       d['additionalResource'] ??
       d['additional_resource_item']) as Map?;
@@ -15,7 +15,7 @@ String reliefQuantitySummary(Map<String, dynamic> d) {
       additionalName.isNotEmpty &&
       additionalQuantity != null) {
     lines.add(
-        'Additional relief: $additionalName â€¢ Quantity: $additionalQuantity');
+        'Additional relief: $additionalName • Quantity: $additionalQuantity');
   }
   return lines.join('\n');
 }
@@ -927,7 +927,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               FilledButton(
                                   onPressed: busy ? null : submit,
                                   child: Text(
-                                      busy ? 'Registeringâ€¦' : 'Register')),
+                                      busy ? 'Registering…' : 'Register')),
                               const SizedBox(height: 8),
                               TextButton(
                                   onPressed: () =>
@@ -1425,7 +1425,7 @@ class _RecordsPageState extends State<RecordsPage> {
                     ? d['claimed_by'].toString()
                     : (d['recipient_name']?.toString().isNotEmpty == true
                         ? d['recipient_name'].toString()
-                        : 'â€”')),
+                        : '—')),
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
                 '${members.length} member(s)'),
@@ -1663,7 +1663,7 @@ class _UpcomingDistributionPageState
                     ? d['claimed_by'].toString()
                     : (d['recipient_name']?.toString().isNotEmpty == true
                         ? d['recipient_name'].toString()
-                        : 'â€”')),
+                        : '—')),
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
                 '${members.length} member(s)'),
@@ -1945,7 +1945,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       _FamilyDetailRow(
                           'Head of Family', f['head_name']?.toString()),
                       _FamilyDetailRow('Household Members',
-                          '${f['household_member'] ?? 'â€”'} member(s)'),
+                          '${f['household_member'] ?? '—'} member(s)'),
                       _FamilyDetailRow(
                           'Purok', f['purok']?['name']?.toString()),
                       _FamilyDetailRow('Barangay / Location',
@@ -2317,7 +2317,7 @@ class _MessagesPageState extends State<MessagesPage> {
                 controller: text,
                 maxLines: null,
                 decoration: const InputDecoration(
-                    hintText: 'Message administratorâ€¦',
+                    hintText: 'Message administrator…',
                     contentPadding: EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10)),
               ),
