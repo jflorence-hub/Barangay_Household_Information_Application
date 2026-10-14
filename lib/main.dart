@@ -73,30 +73,58 @@ class _FamilyLogo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 76,
-          height: 76,
+          width: 90,
+          height: 90,
           decoration: BoxDecoration(
-            color: _blue,
-            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xff1d4ed8), Color(0xff2563eb), Color(0xff1e40af)],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xff2563eb).withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
+              // Wave background
               Positioned(
-                bottom: 8,
-                child: Icon(
-                  Icons.people_alt_rounded,
-                  color: Colors.white.withValues(alpha: 0.45),
-                  size: 36,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  ),
                 ),
               ),
-              const Text(
-                'BH',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  letterSpacing: 1,
+              // House icon
+              Positioned(
+                top: 8,
+                child: Icon(
+                  Icons.house_rounded,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  size: 38,
+                ),
+              ),
+              // Family icon below house
+              const Positioned(
+                bottom: 8,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, color: Colors.white, size: 18),
+                    Icon(Icons.person, color: Colors.white, size: 22),
+                    Icon(Icons.person, color: Colors.white, size: 18),
+                  ],
                 ),
               ),
             ],
@@ -106,30 +134,41 @@ class _FamilyLogo extends StatelessWidget {
         const Text(
           'Barangay Household',
           style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.w800, color: _ink),
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: _ink,
+            letterSpacing: -0.5,
+          ),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 3),
         const Text(
-          'Relief Portal',
-          style: TextStyle(fontSize: 13, color: _muted),
+          'Information',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: _ink,
+            letterSpacing: -0.5,
+          ),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 10),
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-          decoration: BoxDecoration(
-            border: Border.all(color: _blue),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text(
-            'FAMILY',
-            style: TextStyle(
-              color: _blue,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              letterSpacing: 1.5,
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(height: 1, width: 24, color: const Color(0xff2563eb)),
+            const SizedBox(width: 8),
+            const Text(
+              'APPLICATION',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xff2563eb),
+                letterSpacing: 2.5,
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Container(height: 1, width: 24, color: const Color(0xff2563eb)),
+          ],
         ),
         const SizedBox(height: 8),
         const Text(
@@ -277,7 +316,7 @@ class _LoginPageState extends State<LoginPage> {
                               keyboardType: TextInputType.text,
                               onSubmitted: (_) => _busy ? null : _login(),
                               decoration: const InputDecoration(
-                                hintText: 'FAM-XXXXXXXX or 09XXXXXXXXX',
+                                hintText: 'FAM-0001 or 09XXXXXXXXX',
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -287,9 +326,11 @@ class _LoginPageState extends State<LoginPage> {
                               controller: _pw,
                               obscureText: _hidePIN,
                               keyboardType: TextInputType.number,
+                              maxLength: 6,
+                              buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
                               onSubmitted: (_) => _busy ? null : _login(),
                               decoration: InputDecoration(
-                                hintText: 'Enter your 4–6 digit PIN',
+                                hintText: 'Enter your 6-digit PIN',
                                 suffixIcon: IconButton(
                                   onPressed: () => setState(
                                       () => _hidePIN = !_hidePIN),
@@ -343,7 +384,7 @@ class _LoginPageState extends State<LoginPage> {
                                     context,
                                     MaterialPageRoute(
                                         builder: (_) => const ForgotPage())),
-                                child: const Text('Forgot password?',
+                                child: const Text('Forgot PIN?',
                                     style: TextStyle(
                                         color: _blue,
                                         fontWeight: FontWeight.w600)),
@@ -543,6 +584,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget field(TextEditingController c, String label,
           {bool secret = false,
           TextInputType? keyboard,
+          int? maxLength,
           String? Function(String?)? validator}) =>
       Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -550,6 +592,10 @@ class _RegisterPageState extends State<RegisterPage> {
               controller: c,
               obscureText: secret,
               keyboardType: keyboard,
+              maxLength: maxLength,
+              buildCounter: maxLength != null
+                  ? (_, {required currentLength, required isFocused, maxLength}) => null
+                  : null,
               validator: validator ??
                   (v) => (v == null || v.trim().isEmpty)
                       ? 'This field is required'
@@ -570,7 +616,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 children: [
                   field(family, 'Family Name (e.g. Dela Cruz Family)'),
                   field(head, 'Head of Family'),
-                  field(phone, 'Phone Number (09XXXXXXXXX)', keyboard: TextInputType.phone,
+                  field(phone, 'Phone Number (09XXXXXXXXX)', keyboard: TextInputType.phone, maxLength: 11,
                       validator: (v) {
                     if (v == null || v.trim().isEmpty) {
                       return 'Phone number is required';
@@ -580,7 +626,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     }
                     return null;
                   }),
-                  field(email, 'Email (for password recovery)',
+                  field(email, 'Email (for PIN recovery)',
                       keyboard: TextInputType.emailAddress, validator: (v) {
                     if (v == null || v.trim().isEmpty) {
                       return 'Email is required';
@@ -688,7 +734,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 12),
                   field(pw, 'Family PIN (6 digits)',
                       secret: true,
-                      keyboard: TextInputType.number, validator: (v) {
+                      keyboard: TextInputType.number,
+                      maxLength: 6, validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'PIN is required';
                     if (!RegExp(r'^\d{6}$').hasMatch(v.trim())) {
                       return 'PIN must be exactly 6 digits';
@@ -697,7 +744,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   }),
                   field(confirm, 'Confirm Family PIN (6-digit PIN)',
                       secret: true,
-                      keyboard: TextInputType.number, validator: (v) {
+                      keyboard: TextInputType.number,
+                      maxLength: 6, validator: (v) {
                     if (v == null || v.isEmpty) {
                       return 'Please confirm your PIN';
                     }
@@ -727,102 +775,237 @@ class ForgotPage extends StatefulWidget {
 }
 
 class _ForgotPageState extends State<ForgotPage> {
-  final email = TextEditingController(),
-      otp = TextEditingController(),
-      pw = TextEditingController(),
-      confirm = TextEditingController();
-  bool sent = false, busy = false;
-  String? error;
+  final _email   = TextEditingController();
+  final _otp     = TextEditingController();
+  final _pin     = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _sent = false;
+  bool _busy = false;
+  bool _hidePin    = true;
+  bool _hideConfirm = true;
+  String? _error;
 
-  Future<void> send() async {
+  Future<void> _sendCode() async {
+    final emailVal = _email.text.trim();
+    if (emailVal.isEmpty) {
+      setState(() => _error = 'Please enter your registered email address.');
+      return;
+    }
+    setState(() { _busy = true; _error = null; });
     try {
-      setState(() {
-        busy = true;
-        error = null;
-      });
       await Api.req('POST', '/family/forgot-password',
-          auth: false, body: {'email': email.text.trim()});
-      if (mounted) setState(() => sent = true);
+          auth: false, body: {'email': emailVal});
+      if (mounted) setState(() => _sent = true);
     } catch (e) {
       if (mounted) {
-        setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> reset() async {
+  Future<void> _resetPin() async {
+    // Validate OTP
+    if (_otp.text.trim().length != 6) {
+      setState(() => _error = 'Enter the 6-digit code sent to your email.');
+      return;
+    }
+    // Validate new PIN
+    if (!RegExp(r'^\d{6}$').hasMatch(_pin.text)) {
+      setState(() => _error = 'New PIN must be exactly 6 digits.');
+      return;
+    }
+    if (_pin.text != _confirm.text) {
+      setState(() => _error = 'PINs do not match.');
+      return;
+    }
+    setState(() { _busy = true; _error = null; });
     try {
-      setState(() {
-        busy = true;
-        error = null;
-      });
       await Api.req('POST', '/family/reset-password', auth: false, body: {
-        'email': email.text.trim(),
-        'otp': otp.text.trim(),
-        'password': pw.text,
-        'password_confirmation': confirm.text
+        'email':                 _email.text.trim(),
+        'otp':                   _otp.text.trim(),
+        'password':              _pin.text,
+        'password_confirmation': _confirm.text,
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Password changed. Please log in.')));
-        Navigator.pushAndRemoveUntil(context,
-            MaterialPageRoute(builder: (_) => const LoginPage()), (_) => false);
+            const SnackBar(content: Text('PIN changed successfully. Please log in with your new PIN.')));
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (_) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
-        setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext c) =>
-      AuthScaffold(title: 'Reset Password', children: [
-        TextField(
-            controller: email,
-            decoration: const InputDecoration(
-                labelText: 'Registered email', border: OutlineInputBorder())),
-        if (sent) ...[
-          const SizedBox(height: 10),
-          TextField(
-              controller: otp,
-              decoration: const InputDecoration(
-                  labelText: '6-digit email code',
-                  border: OutlineInputBorder())),
-          const SizedBox(height: 10),
-          TextField(
-              controller: pw,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'New Family PIN (6-digit PIN)',
-                  border: OutlineInputBorder())),
-          const SizedBox(height: 10),
-          TextField(
-              controller: confirm,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'Confirm new Family PIN (6-digit PIN)',
-                  border: OutlineInputBorder()))
-        ],
-        if (error != null)
-          Text(error!, style: const TextStyle(color: Colors.red)),
-        FilledButton(
-            onPressed: busy ? null : (sent ? reset : send),
-            child: Text(busy
-                ? 'Please wait…'
-                : sent
-                    ? 'Save new password'
-                    : 'Send reset code')),
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Back to login'))
-      ]);
+  void dispose() {
+    _email.dispose();
+    _otp.dispose();
+    _pin.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: _canvas,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          _sent ? 'Reset your PIN' : 'Forgot PIN?',
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: _ink),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _sent
+                              ? 'Enter the 6-digit code sent to your email, then set a new 6-digit PIN.'
+                              : 'Enter the email address you registered with and we\'ll send you a reset code.',
+                          style: const TextStyle(color: _muted, fontSize: 13),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Email field (always shown)
+                        const _FieldLabel('Email address'),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          readOnly: _sent,
+                          decoration: InputDecoration(
+                            hintText: 'your@email.com',
+                            filled: true,
+                            fillColor: _sent ? const Color(0xfff8fafc) : Colors.white,
+                          ),
+                        ),
+
+                        // Fields shown after OTP sent
+                        if (_sent) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xffecfdf5),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'A 6-digit code was sent to your email. It expires in 10 minutes.',
+                              style: TextStyle(
+                                  color: Color(0xff059669), fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          const _FieldLabel('6-digit code'),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _otp,
+                            keyboardType: TextInputType.number,
+                            maxLength: 6,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter code',
+                              counterText: '',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          const _FieldLabel('New PIN (6 digits)'),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _pin,
+                            keyboardType: TextInputType.number,
+                            obscureText: _hidePin,
+                            maxLength: 6,
+                            buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                            decoration: InputDecoration(
+                              hintText: '6-digit PIN',
+                              suffixIcon: IconButton(
+                                onPressed: () =>
+                                    setState(() => _hidePin = !_hidePin),
+                                icon: Icon(_hidePin
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          const _FieldLabel('Confirm new PIN'),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _confirm,
+                            keyboardType: TextInputType.number,
+                            obscureText: _hideConfirm,
+                            maxLength: 6,
+                            buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                            decoration: InputDecoration(
+                              hintText: '6-digit PIN',
+                              suffixIcon: IconButton(
+                                onPressed: () =>
+                                    setState(() => _hideConfirm = !_hideConfirm),
+                                icon: Icon(_hideConfirm
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        if (_error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(_error!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 13)),
+                        ],
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: _busy ? null : (_sent ? _resetPin : _sendCode),
+                          child: _busy
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
+                              : Text(_sent ? 'Set new PIN' : 'Send reset code'),
+                        ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Back to login',
+                                style: TextStyle(
+                                    color: _blue,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class FamilyHome extends StatefulWidget {
