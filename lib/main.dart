@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
 
 String reliefQuantitySummary(Map<String, dynamic> d) {
@@ -82,8 +83,9 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -292,27 +294,32 @@ class _RegisterPageState extends State<RegisterPage> {
                   field(head, 'Head of Family'),
                   field(phone, 'Phone Number', keyboard: TextInputType.phone,
                       validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Phone number is required';
-                    if (v.trim().length < 7)
+                    }
+                    if (v.trim().length < 7) {
                       return 'Enter a valid phone number';
+                    }
                     return null;
                   }),
                   field(email, 'Email (for password recovery)',
                       keyboard: TextInputType.emailAddress, validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Email is required';
+                    }
                     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                        .hasMatch(v.trim()))
+                        .hasMatch(v.trim())) {
                       return 'Enter a valid email address';
+                    }
                     return null;
                   }),
                   field(address, 'Address'),
                   field(members, 'Household Members',
                       keyboard: TextInputType.number, validator: (v) {
                     final n = int.tryParse(v ?? '');
-                    if (n == null || n < 1)
+                    if (n == null || n < 1) {
                       return 'Enter at least 1 household member';
+                    }
                     return null;
                   }),
                   DropdownButtonFormField<int>(
@@ -353,15 +360,17 @@ class _RegisterPageState extends State<RegisterPage> {
                       secret: true,
                       keyboard: TextInputType.number, validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'PIN is required';
-                    if (!RegExp(r'^\d{4,6}$').hasMatch(v.trim()))
+                    if (!RegExp(r'^\d{4,6}$').hasMatch(v.trim())) {
                       return 'PIN must be 4–6 digits';
+                    }
                     return null;
                   }),
                   field(confirm, 'Confirm Family PIN',
                       secret: true,
                       keyboard: TextInputType.number, validator: (v) {
-                    if (v == null || v.isEmpty)
+                    if (v == null || v.isEmpty) {
                       return 'Please confirm your PIN';
+                    }
                     if (v != pw.text) return 'PINs do not match';
                     return null;
                   }),
@@ -405,8 +414,9 @@ class _ForgotPageState extends State<ForgotPage> {
           auth: false, body: {'email': email.text.trim()});
       if (mounted) setState(() => sent = true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -431,8 +441,9 @@ class _ForgotPageState extends State<ForgotPage> {
             MaterialPageRoute(builder: (_) => const LoginPage()), (_) => false);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -493,6 +504,64 @@ class FamilyHome extends StatefulWidget {
 
 class _FamilyHomeState extends State<FamilyHome> {
   int tab = 0;
+  Timer? _announcementTimer;
+
+  Future<void> _checkAnnouncements() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastSeen = prefs.getInt('last_announcement_id') ?? 0;
+      final data = await Api.req('GET', '/family/announcements');
+      final list = (data['announcements'] as List? ?? []);
+      if (list.isEmpty) return;
+      // Find announcements newer than lastSeen
+      final newOnes = list
+          .where((a) => (a['id'] as int? ?? 0) > lastSeen)
+          .toList();
+      if (newOnes.isEmpty || !mounted) return;
+      // Update last_announcement_id to max id seen
+      final maxId = list
+          .map<int>((a) => a['id'] as int? ?? 0)
+          .reduce((a, b) => a > b ? a : b);
+      await prefs.setInt('last_announcement_id', maxId);
+      // Show a dialog for each new announcement
+      for (final ann in newOnes) {
+        if (!mounted) break;
+        await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(ann['title']?.toString() ?? 'Announcement'),
+            content: Text(ann['body']?.toString() ?? ''),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (_) {
+      // Silently ignore network/auth errors
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Check immediately on load
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAnnouncements());
+    // Then poll every 30 seconds
+    _announcementTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _checkAnnouncements(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _announcementTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext c) => Scaffold(
