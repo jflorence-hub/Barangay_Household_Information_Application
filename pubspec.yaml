@@ -1,7 +1,7 @@
 name: barangay_household_information_application
 description: Family portal for Barangay Household Information Application.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 environment:
   sdk: '>=3.3.0 <4.0.0'
 dependencies:

@@ -32,25 +32,36 @@ class FamilyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff2563eb)),
-        scaffoldBackgroundColor: const Color(0xfff1f5f9),
+        scaffoldBackgroundColor: const Color(0xfff6f8fc),
         appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xffffffff),
             foregroundColor: Color(0xff0f172a),
             elevation: 0),
-        cardTheme: const CardThemeData(
-            color: Color(0xffffffff),
-            elevation: 1,
-            margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
-        inputDecorationTheme: const InputDecorationTheme(
+        cardTheme: CardThemeData(
+            color: Colors.white,
+            elevation: 0,
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xffe8edf5)))),
+        inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: Color(0xffffffff),
+            fillColor: Colors.white,
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10)))),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xffdbe3ef))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xffdbe3ef))),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 13)),
         filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xff2563eb),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14))),
+                minimumSize: const Size(44, 48),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)))),
       ),
       home: const LoginPage());
 }
@@ -607,164 +618,333 @@ class _RegisterPageState extends State<RegisterPage> {
       v == null || v.trim().isEmpty ? 'This field is required' : null;
 
   @override
-  Widget build(BuildContext c) =>
-      AuthScaffold(title: 'Register Family', children: [
-        Form(
-            key: formKey,
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  field(family, 'Family Name (e.g. Dela Cruz Family)'),
-                  field(head, 'Head of Family'),
-                  field(phone, 'Phone Number (09XXXXXXXXX)', keyboard: TextInputType.phone, maxLength: 11,
-                      validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Phone number is required';
-                    }
-                    if (!RegExp(r'^09\d{9}$').hasMatch(v.trim())) {
-                      return 'Phone must be 11 digits starting with 09';
-                    }
-                    return null;
-                  }),
-                  field(email, 'Email (for PIN recovery)',
-                      keyboard: TextInputType.emailAddress, validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Email is required';
-                    }
-                    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                        .hasMatch(v.trim())) {
-                      return 'Enter a valid email address';
-                    }
-                    return null;
-                  }),
-                  field(address, 'Address'),
-                  // Dynamic Household Members section
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Household Members (${_memberControllers.length})',
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                        TextButton.icon(
-                          onPressed: _addMember,
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add member'),
-                          style: TextButton.styleFrom(
-                              visualDensity: VisualDensity.compact),
-                        ),
-                      ],
+  Widget build(BuildContext c) => Scaffold(
+        backgroundColor: _canvas,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Center(child: _FamilyLogo()),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Register Family',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: _ink),
                     ),
-                  ),
-                  ...List.generate(_memberControllers.length, (i) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 28,
-                            child: Text(
-                              '${i + 1}.',
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                  fontSize: 13, color: Colors.grey),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _memberControllers[i],
-                              decoration: InputDecoration(
-                                labelText: 'Member ${i + 1} full name',
-                                border: const OutlineInputBorder(),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Create your household account',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _muted, fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Form(
+                          key: formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const _FieldLabel(
+                                  'Family Name (e.g. Dela Cruz Family)'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: family,
+                                validator: requiredText,
+                                decoration: const InputDecoration(
+                                    hintText: 'Enter family name'),
                               ),
-                            ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel('Head of Family'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: head,
+                                validator: requiredText,
+                                decoration: const InputDecoration(
+                                    hintText: 'Enter head of family name'),
+                              ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel(
+                                  'Phone Number (09XXXXXXXXX)'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: phone,
+                                keyboardType: TextInputType.phone,
+                                maxLength: 11,
+                                buildCounter: (_,
+                                        {required currentLength,
+                                        required isFocused,
+                                        maxLength}) =>
+                                    null,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'Phone number is required';
+                                  }
+                                  if (!RegExp(r'^09\d{9}$')
+                                      .hasMatch(v.trim())) {
+                                    return 'Phone must be 11 digits starting with 09';
+                                  }
+                                  return null;
+                                },
+                                decoration: const InputDecoration(
+                                    hintText: '09XXXXXXXXX'),
+                              ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel('Email (for PIN recovery)'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: email,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'Email is required';
+                                  }
+                                  if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                      .hasMatch(v.trim())) {
+                                    return 'Enter a valid email address';
+                                  }
+                                  return null;
+                                },
+                                decoration: const InputDecoration(
+                                    hintText: 'your@email.com'),
+                              ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel('Address'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: address,
+                                validator: requiredText,
+                                decoration: const InputDecoration(
+                                    hintText: 'Enter your address'),
+                              ),
+                              const SizedBox(height: 14),
+                              // Info box above members
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xffeff6ff),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: const Color(0xffbfdbfe)),
+                                ),
+                                child: const Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.info_outline,
+                                        color: _blue, size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'List all family members to prevent duplicate registrations. '
+                                        'If a name is already registered, the system will reject the submission.',
+                                        style: TextStyle(
+                                            fontSize: 12, color: _blue),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              // Dynamic Household Members section
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Household Members (${_memberControllers.length})',
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _addMember,
+                                    icon: const Icon(Icons.add, size: 16),
+                                    label: const Text('Add member'),
+                                    style: TextButton.styleFrom(
+                                        visualDensity:
+                                            VisualDensity.compact),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              ...List.generate(_memberControllers.length,
+                                  (i) {
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.only(bottom: 10),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 28,
+                                        child: Text(
+                                          '${i + 1}.',
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _memberControllers[i],
+                                          decoration: InputDecoration(
+                                            hintText:
+                                                'Member ${i + 1} full name',
+                                          ),
+                                        ),
+                                      ),
+                                      if (_memberControllers.length >
+                                          1) ...[
+                                        const SizedBox(width: 4),
+                                        IconButton(
+                                          icon: const Icon(Icons.close,
+                                              size: 18,
+                                              color: Colors.red),
+                                          onPressed: () =>
+                                              _removeMember(i),
+                                          tooltip: 'Remove member',
+                                          visualDensity:
+                                              VisualDensity.compact,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              }),
+                              const SizedBox(height: 4),
+                              const _FieldLabel('Assigned Purok'),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<int>(
+                                initialValue: purok,
+                                decoration: const InputDecoration(
+                                    hintText: 'Select purok'),
+                                validator: (v) => v == null
+                                    ? 'Please select a purok'
+                                    : null,
+                                items: puroks
+                                    .map((x) => DropdownMenuItem<int>(
+                                          value: int.tryParse(
+                                              x['id'].toString()),
+                                          child:
+                                              Text(x['name'].toString()),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => purok = v),
+                              ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel('Barangay / Location'),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<int>(
+                                initialValue: location,
+                                decoration: const InputDecoration(
+                                    hintText: 'Select barangay/location'),
+                                validator: (v) => v == null
+                                    ? 'Please select a barangay/location'
+                                    : null,
+                                items: locations
+                                    .map((x) => DropdownMenuItem<int>(
+                                          value: int.tryParse(
+                                              x['id'].toString()),
+                                          child:
+                                              Text(x['name'].toString()),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => location = v),
+                              ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel('Family PIN (6 digits)'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: pw,
+                                obscureText: true,
+                                keyboardType: TextInputType.number,
+                                maxLength: 6,
+                                buildCounter: (_,
+                                        {required currentLength,
+                                        required isFocused,
+                                        maxLength}) =>
+                                    null,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'PIN is required';
+                                  }
+                                  if (!RegExp(r'^\d{6}$')
+                                      .hasMatch(v.trim())) {
+                                    return 'PIN must be exactly 6 digits';
+                                  }
+                                  return null;
+                                },
+                                decoration: const InputDecoration(
+                                    hintText: 'Enter 6-digit PIN'),
+                              ),
+                              const SizedBox(height: 14),
+                              const _FieldLabel(
+                                  'Confirm Family PIN (6-digit PIN)'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: confirm,
+                                obscureText: true,
+                                keyboardType: TextInputType.number,
+                                maxLength: 6,
+                                buildCounter: (_,
+                                        {required currentLength,
+                                        required isFocused,
+                                        maxLength}) =>
+                                    null,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Please confirm your PIN';
+                                  }
+                                  if (v != pw.text) {
+                                    return 'PINs do not match';
+                                  }
+                                  return null;
+                                },
+                                decoration: const InputDecoration(
+                                    hintText: 'Confirm 6-digit PIN'),
+                              ),
+                              if (error != null) ...[
+                                const SizedBox(height: 10),
+                                Text(error!,
+                                    style: const TextStyle(
+                                        color: Colors.red)),
+                              ],
+                              const SizedBox(height: 14),
+                              FilledButton(
+                                  onPressed: busy ? null : submit,
+                                  child: Text(
+                                      busy ? 'Registering…' : 'Register')),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context),
+                                  child: const Text('Back to login')),
+                            ],
                           ),
-                          if (_memberControllers.length > 1) ...[
-                            const SizedBox(width: 4),
-                            IconButton(
-                              icon: const Icon(Icons.close,
-                                  size: 18, color: Colors.red),
-                              onPressed: () => _removeMember(i),
-                              tooltip: 'Remove member',
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          ],
-                        ],
+                        ),
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 4),
-                  DropdownButtonFormField<int>(
-                    initialValue: purok,
-                    decoration: const InputDecoration(
-                      labelText: 'Assigned Purok',
-                      border: OutlineInputBorder(),
                     ),
-                    validator: (v) =>
-                        v == null ? 'Please select a purok' : null,
-                    items: puroks
-                        .map((x) => DropdownMenuItem<int>(
-                              value: int.tryParse(x['id'].toString()),
-                              child: Text(x['name'].toString()),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => purok = v),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<int>(
-                    initialValue: location,
-                    decoration: const InputDecoration(
-                      labelText: 'Barangay / Location',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) =>
-                        v == null ? 'Please select a barangay/location' : null,
-                    items: locations
-                        .map((x) => DropdownMenuItem<int>(
-                              value: int.tryParse(x['id'].toString()),
-                              child: Text(x['name'].toString()),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => location = v),
-                  ),
-                  const SizedBox(height: 12),
-                  field(pw, 'Family PIN (6 digits)',
-                      secret: true,
-                      keyboard: TextInputType.number,
-                      maxLength: 6, validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'PIN is required';
-                    if (!RegExp(r'^\d{6}$').hasMatch(v.trim())) {
-                      return 'PIN must be exactly 6 digits';
-                    }
-                    return null;
-                  }),
-                  field(confirm, 'Confirm Family PIN (6-digit PIN)',
-                      secret: true,
-                      keyboard: TextInputType.number,
-                      maxLength: 6, validator: (v) {
-                    if (v == null || v.isEmpty) {
-                      return 'Please confirm your PIN';
-                    }
-                    if (v != pw.text) return 'PINs do not match';
-                    return null;
-                  }),
-                  if (error != null)
-                    Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(error!,
-                            style: const TextStyle(color: Colors.red))),
-                  FilledButton(
-                      onPressed: busy ? null : submit,
-                      child: Text(busy ? 'Registering…' : 'Register')),
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Back to login'))
-                ]))
-      ]);
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class ForgotPage extends StatefulWidget {
@@ -1019,6 +1199,34 @@ class _FamilyHomeState extends State<FamilyHome> {
   int tab = 0;
   Timer? _announcementTimer;
 
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Log out',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await Api.req('POST', '/family/logout');
+    } catch (_) {}
+    await Api.clearToken();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(context,
+          MaterialPageRoute(builder: (_) => const LoginPage()), (_) => false);
+    }
+  }
+
   Future<void> _checkAnnouncements() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1078,21 +1286,41 @@ class _FamilyHomeState extends State<FamilyHome> {
 
   @override
   Widget build(BuildContext c) => Scaffold(
-      appBar: AppBar(title: const Text('Barangay Household Portal'), actions: [
-        IconButton(
-            onPressed: () async {
-              await Api.req('POST', '/family/logout');
-              await Api.clearToken();
-              if (mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                  (_) => false,
-                );
-              }
-            },
-            icon: const Icon(Icons.logout))
-      ]),
+      appBar: AppBar(
+          titleSpacing: 16,
+          title: Row(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: _blue,
+                  borderRadius: BorderRadius.circular(11)),
+              child: const Center(
+                child: Text('BH',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Barangay Household',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text('Information System',
+                      style: TextStyle(color: _muted, fontSize: 11)),
+                ],
+              ),
+            ),
+          ]),
+          actions: [
+            IconButton(
+                onPressed: _logout, icon: const Icon(Icons.logout))
+          ]),
       body: IndexedStack(index: tab, children: const [
         RecordsPage(),
         UpcomingDistributionPage(),
@@ -1122,6 +1350,27 @@ class _RecordsPageState extends State<RecordsPage> {
   late Future<Map<String, dynamic>> future =
       Api.req('GET', '/family/distributions');
 
+  Color _statusColor(dynamic s) {
+    final v = s?.toString().toLowerCase() ?? '';
+    if (v == 'completed') return const Color(0xff059669);
+    if (v == 'cancelled' || v == 'canceled') return const Color(0xffdc2626);
+    return const Color(0xfff59e0b);
+  }
+
+  String _fmtDate(dynamic raw) {
+    if (raw == null || raw.toString().isEmpty) return 'Date not set';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+
   @override
   Widget build(BuildContext c) => FutureBuilder(
         future: future,
@@ -1137,16 +1386,79 @@ class _RecordsPageState extends State<RecordsPage> {
             onRefresh: () async => setState(
                 () => future = Api.req('GET', '/family/distributions')),
             child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               children: rows
-                  .map<Widget>((d) => Card(
-                        margin: const EdgeInsets.all(10),
-                        child: ListTile(
-                          leading: const Icon(Icons.inventory_2),
-                          title: Text(d['resource']?['name']?.toString() ??
-                              'Relief not assigned'),
-                          subtitle: Text(
-                              '${reliefQuantitySummary(Map<String, dynamic>.from(d))}\nDate: ${d['distribution_date'] ?? 'Not scheduled'}'),
-                          trailing: Text(d['status']?.toString() ?? 'Pending'),
+                  .map<Widget>((d) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                    color: const Color(0xfff0fdfa),
+                                    borderRadius:
+                                        BorderRadius.circular(13)),
+                                child: const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Color(0xff0d9488)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      d['resource']?['name']
+                                              ?.toString() ??
+                                          'Relief not assigned',
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                    Text(
+                                      reliefQuantitySummary(
+                                          Map<String, dynamic>.from(d)),
+                                      style: const TextStyle(
+                                          fontSize: 12, color: _muted),
+                                    ),
+                                    Text(
+                                      _fmtDate(d['distribution_date']),
+                                      style: const TextStyle(
+                                          fontSize: 11, color: _muted),
+                                    ),
+                                    Container(
+                                      margin: const EdgeInsets.only(
+                                          top: 4),
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(d['status'])
+                                            .withValues(alpha: 0.1),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        d['status']?.toString() ??
+                                            'pending',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: _statusColor(
+                                                d['status']),
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right,
+                                  color: Color(0xff94a3b8)),
+                            ]),
+                          ),
                         ),
                       ))
                   .toList(),
@@ -1195,21 +1507,24 @@ class _UpcomingDistributionPageState
     super.dispose();
   }
 
-  String fmt(dynamic value) {
-    if (value == null || value.toString().isEmpty) {
-      return 'Date not set';
-    }
+  Color _statusColor(dynamic s) {
+    final v = s?.toString().toLowerCase() ?? '';
+    if (v == 'completed') return const Color(0xff059669);
+    if (v == 'cancelled' || v == 'canceled') return const Color(0xffdc2626);
+    return const Color(0xfff59e0b);
+  }
 
+  String _fmtDate(dynamic raw) {
+    if (raw == null || raw.toString().isEmpty) return 'Date not set';
     try {
-      final dt = DateTime.parse(value.toString()).toLocal();
-
-      return '${dt.year}-'
-          '${dt.month.toString().padLeft(2, '0')}-'
-          '${dt.day.toString().padLeft(2, '0')} '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
-      return value.toString();
+      return raw.toString();
     }
   }
 
@@ -1280,9 +1595,10 @@ class _UpcomingDistributionPageState
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             children: [
               Card(
+                margin: const EdgeInsets.only(bottom: 12),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Text(
@@ -1294,112 +1610,79 @@ class _UpcomingDistributionPageState
                 ),
               ),
 
-              ...rows.map<Widget>((d) {
-                final status =
-                    (d['status'] ?? 'pending').toString();
-
-                final details = reliefQuantitySummary(
-                  Map<String, dynamic>.from(d),
-                );
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 0,
-                    vertical: 6,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 3),
-                          child: Icon(
-                            Icons.volunteer_activism,
-                            color: Color(0xff2563eb),
-                            size: 28,
+              ...rows.map<Widget>((d) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                                color: const Color(0xfff0fdfa),
+                                borderRadius:
+                                    BorderRadius.circular(13)),
+                            child: const Icon(
+                                Icons.volunteer_activism,
+                                color: Color(0xff0d9488)),
                           ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        // Flexible details area.
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                d['resource']?['name']
-                                        ?.toString() ??
-                                    'Relief not assigned',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium,
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              Text(
-                                'Date & time: '
-                                '${fmt(d['distribution_date'])}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium,
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              // Quantity and additional relief.
-                              Text(
-                                details,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium,
-                              ),
-                            ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  d['resource']?['name']
+                                          ?.toString() ??
+                                      'Relief not assigned',
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                Text(
+                                  reliefQuantitySummary(
+                                      Map<String, dynamic>.from(d)),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: _muted),
+                                ),
+                                Text(
+                                  _fmtDate(d['distribution_date']),
+                                  style: const TextStyle(
+                                      fontSize: 11, color: _muted),
+                                ),
+                                Container(
+                                  margin:
+                                      const EdgeInsets.only(top: 4),
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: _statusColor(d['status'])
+                                        .withValues(alpha: 0.1),
+                                    borderRadius:
+                                        BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    d['status']?.toString() ??
+                                        'pending',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color:
+                                            _statusColor(d['status']),
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        // Compact status section.
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              color: Color(0xff2563eb),
-                              size: 20,
-                            ),
-
-                            const SizedBox(height: 3),
-
-                            Text(
-                              'Included',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall,
-                            ),
-
-                            const SizedBox(height: 3),
-
-                            Text(
-                              status,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall,
-                            ),
-                          ],
-                        ),
-                      ],
+                          const Icon(Icons.chevron_right,
+                              color: Color(0xff94a3b8)),
+                        ]),
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  )),
             ],
           ),
         );
@@ -1408,6 +1691,34 @@ class _UpcomingDistributionPageState
   }
 }
 
+
+// ─── Family Detail Row helper ─────────────────────────────────────────────────
+
+class _FamilyDetailRow extends StatelessWidget {
+  const _FamilyDetailRow(this.label, this.value);
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value == null || value!.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(
+            width: 130,
+            child: Text(label,
+                style: const TextStyle(fontSize: 12, color: _muted))),
+        Expanded(
+            child: Text(value!,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _ink))),
+      ]),
+    );
+  }
+}
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -1427,34 +1738,81 @@ class _ProfilePageState extends State<ProfilePage> {
             return const Center(child: CircularProgressIndicator());
           }
           final f = s.data!['family'] as Map<String, dynamic>? ?? {};
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                f['family_name']?.toString() ?? 'Family',
-                style: Theme.of(c).textTheme.headlineMedium,
-              ),
-              ListTile(
-                title: const Text('Family ID'),
-                subtitle: Text(f['family_id']?.toString() ?? '—'),
-              ),
-              ListTile(
-                title: const Text('Family head'),
-                subtitle: Text(f['head_name']?.toString() ?? '—'),
-              ),
-              ListTile(
-                title: const Text('Household members'),
-                subtitle: Text('${f['household_member'] ?? '—'}'),
-              ),
-              ListTile(
-                title: const Text('Purok'),
-                subtitle: Text(f['purok']?['name']?.toString() ?? '—'),
-              ),
-              ListTile(
-                title: const Text('Barangay / Location'),
-                subtitle: Text(f['location']?['name']?.toString() ?? '—'),
-              ),
-            ],
+          return RefreshIndicator(
+            onRefresh: () async =>
+                setState(() => future = Api.req('GET', '/family/me')),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Avatar section
+                Center(
+                  child: Column(children: [
+                    CircleAvatar(
+                      radius: 36,
+                      backgroundColor: _blue,
+                      child: Text(
+                        (f['family_name']?.toString() ?? 'F').isNotEmpty
+                            ? f['family_name']
+                                .toString()[0]
+                                .toUpperCase()
+                            : 'F',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      f['family_name']?.toString() ?? 'Family',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: _ink),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: const Color(0xffeff6ff),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _blue)),
+                      child: Text(
+                        f['family_id']?.toString() ?? '',
+                        style: const TextStyle(
+                            color: _blue,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12),
+                      ),
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 16),
+                // Details card
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(children: [
+                      _FamilyDetailRow(
+                          'Family Name', f['family_name']?.toString()),
+                      _FamilyDetailRow(
+                          'Family ID', f['family_id']?.toString()),
+                      _FamilyDetailRow(
+                          'Head of Family', f['head_name']?.toString()),
+                      _FamilyDetailRow('Household Members',
+                          '${f['household_member'] ?? '—'} member(s)'),
+                      _FamilyDetailRow(
+                          'Purok', f['purok']?['name']?.toString()),
+                      _FamilyDetailRow('Barangay / Location',
+                          f['location']?['name']?.toString()),
+                      _FamilyDetailRow(
+                          'Status', f['status']?.toString()),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
           );
         },
       );
@@ -1469,78 +1827,310 @@ class MessagesPage extends StatefulWidget {
 
 class _MessagesPageState extends State<MessagesPage> {
   final text = TextEditingController();
-  late Future<Map<String, dynamic>> future = Api.req('GET', '/family/messages');
+  final _scrollCtrl = ScrollController();
+  Timer? _timer;
+  List<Map<String, dynamic>> _messages = [];
+  bool _sending = false;
   String? error;
 
-  Future<void> send() async {
-    if (text.text.trim().isEmpty) return;
-    try {
-      await Api.req(
-        'POST',
-        '/family/messages',
-        body: {'message': text.text.trim()},
-      );
-      text.clear();
-      setState(() {
-        error = null;
-        future = Api.req('GET', '/family/messages');
-      });
-    } catch (e) {
-      setState(() => error = e.toString());
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+    _timer = Timer.periodic(
+        const Duration(seconds: 10), (_) => _loadMessages());
   }
 
   @override
-  Widget build(BuildContext c) => Column(
-        children: [
-          Expanded(
-            child: FutureBuilder(
-              future: future,
-              builder: (c, s) {
-                if (!s.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final rows = s.data!['messages'] as List? ?? [];
-                return ListView(
-                  children: rows
-                      .map<Widget>((m) => ListTile(
-                            leading: Icon(
-                              m['sender_type'] == 'family'
-                                  ? Icons.person
-                                  : Icons.admin_panel_settings,
-                            ),
-                            title: Text(m['message'].toString()),
-                            subtitle: Text(
-                              '${m['sender_type']} • ${m['created_at']}',
-                            ),
-                          ))
-                      .toList(),
-                );
-              },
-            ),
+  void dispose() {
+    _timer?.cancel();
+    _scrollCtrl.dispose();
+    text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      final result = await Api.req('GET', '/family/messages');
+      final list = result['messages'] as List? ?? [];
+      if (mounted) {
+        setState(() =>
+            _messages = list.map((e) => e as Map<String, dynamic>).toList());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollCtrl.hasClients) {
+            _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> send() async {
+    if (text.text.trim().isEmpty || _sending) return;
+    setState(() => _sending = true);
+    try {
+      await Api.req('POST', '/family/messages',
+          body: {'message': text.text.trim()});
+      text.clear();
+      await _loadMessages();
+    } catch (e) {
+      setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  String _formatTime(String? iso) {
+    if (iso == null) return '';
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      final h =
+          dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final m = dt.minute.toString().padLeft(2, '0');
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$h:$m $ampm';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _formatDate(String? iso) {
+    if (iso == null) return '';
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final day = DateTime(dt.year, dt.month, dt.day);
+      if (day == today) return 'Today';
+      if (day == yesterday) return 'Yesterday';
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  List<Map<String, dynamic>> _groupByDate() {
+    final groups = <Map<String, dynamic>>[];
+    String lastLabel = '';
+    for (final msg in _messages) {
+      final label = _formatDate(msg['created_at']?.toString());
+      if (label != lastLabel) {
+        groups.add({'type': 'date', 'label': label});
+        lastLabel = label;
+      }
+      groups.add({'type': 'msg', 'data': msg});
+    }
+    return groups;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Column(
+      children: [
+        // Header
+        Container(
+          color: Colors.white,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(
+                bottom: BorderSide(color: Color(0xffe8edf5))),
           ),
-          if (error != null)
-            Text(
-              error!,
-              style: const TextStyle(color: Colors.red),
+          child: Row(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: const Color(0xffdbeafe),
+                  borderRadius: BorderRadius.circular(18)),
+              child: const Icon(Icons.groups_outlined,
+                  color: _blue, size: 20),
             ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
+            const SizedBox(width: 10),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: text,
-                    decoration: const InputDecoration(
-                      hintText: 'Message administrator…',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                IconButton(onPressed: send, icon: const Icon(Icons.send)),
+                Text('Administrator',
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700)),
+                Text('Barangay Household Support',
+                    style: TextStyle(color: _muted, fontSize: 11)),
               ],
             ),
+          ]),
+        ),
+        // Messages list
+        Expanded(
+          child: _messages.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chat_bubble_outline,
+                          size: 56, color: Color(0xffcbd5e1)),
+                      SizedBox(height: 12),
+                      Text('No messages yet',
+                          style: TextStyle(color: _muted)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  controller: _scrollCtrl,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  itemCount: _groupByDate().length,
+                  itemBuilder: (context, index) {
+                    final items = _groupByDate();
+                    final item = items[index];
+                    if (item['type'] == 'date') {
+                      return Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(children: [
+                          const Expanded(child: Divider()),
+                          Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: const Color(0xfff1f5f9),
+                                borderRadius:
+                                    BorderRadius.circular(12)),
+                            child: Text(item['label']?.toString() ?? '',
+                                style: const TextStyle(
+                                    fontSize: 11, color: _muted)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ]),
+                      );
+                    }
+                    final m =
+                        item['data'] as Map<String, dynamic>? ?? {};
+                    final isSelf = m['sender_type'] == 'family' ||
+                        m['sender_type'] == 'user';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: isSelf
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: isSelf
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                            children: [
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                    maxWidth: screenWidth * 0.72),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isSelf
+                                        ? _blue
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft:
+                                          const Radius.circular(18),
+                                      topRight:
+                                          const Radius.circular(18),
+                                      bottomLeft: Radius.circular(
+                                          isSelf ? 18 : 4),
+                                      bottomRight: Radius.circular(
+                                          isSelf ? 4 : 18),
+                                    ),
+                                    border: isSelf
+                                        ? null
+                                        : Border.all(
+                                            color: const Color(
+                                                0xffe2e8f0)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.04),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2)),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    m['message']?.toString() ?? '',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: isSelf
+                                            ? Colors.white
+                                            : _ink),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                top: 2, left: 4, right: 4),
+                            child: Text(
+                              _formatTime(
+                                  m['created_at']?.toString()),
+                              style: const TextStyle(
+                                  fontSize: 10, color: _muted),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(error!,
+                style: const TextStyle(color: Colors.red, fontSize: 12)),
           ),
-        ],
-      );
+        // Compose area
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          decoration: const BoxDecoration(
+            border:
+                Border(top: BorderSide(color: Color(0xffe8edf5))),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: TextField(
+                controller: text,
+                maxLines: null,
+                decoration: const InputDecoration(
+                    hintText: 'Message administrator…',
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _sending ? null : send,
+              icon: _sending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _blue))
+                  : const Icon(Icons.send_rounded, color: _blue),
+              style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xffeff6ff),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12))),
+            ),
+          ]),
+        ),
+      ],
+    );
+  }
 }
