@@ -55,6 +55,109 @@ class FamilyApp extends StatelessWidget {
       home: const LoginPage());
 }
 
+// ─── Constants shared with login ─────────────────────────────────────────────
+
+const _blue = Color(0xff2563eb);
+const _ink = Color(0xff0f172a);
+const _muted = Color(0xff64748b);
+const _canvas = Color(0xfff6f8fc);
+
+// ─── Family App logo ─────────────────────────────────────────────────────────
+
+class _FamilyLogo extends StatelessWidget {
+  const _FamilyLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            color: _blue,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                bottom: 8,
+                child: Icon(
+                  Icons.people_alt_rounded,
+                  color: Colors.white.withValues(alpha: 0.45),
+                  size: 36,
+                ),
+              ),
+              const Text(
+                'BH',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Barangay Household',
+          style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.w800, color: _ink),
+        ),
+        const SizedBox(height: 3),
+        const Text(
+          'Relief Portal',
+          style: TextStyle(fontSize: 13, color: _muted),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          decoration: BoxDecoration(
+            border: Border.all(color: _blue),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            'FAMILY',
+            style: TextStyle(
+              color: _blue,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Together for a safer and stronger community.',
+          style: TextStyle(color: _muted, fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Field label helper ───────────────────────────────────────────────────────
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: const TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w600, color: _ink),
+      );
+}
+
+// ─── Login Page ───────────────────────────────────────────────────────────────
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -63,18 +166,50 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final phone = TextEditingController(), pw = TextEditingController();
-  String? error;
-  bool busy = false;
+  final _phone = TextEditingController();
+  final _pw = TextEditingController();
+  bool _busy = false;
+  bool _hidePIN = true;
+  bool _rememberMe = false;
+  String? _error;
 
-  Future<void> login() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadRemembered();
+  }
+
+  Future<void> _loadRemembered() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remembered = prefs.getString('family_remember');
+    if (remembered != null && mounted) {
+      setState(() {
+        _phone.text = remembered;
+        _rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _login() async {
+    if (_phone.text.trim().isEmpty || _pw.text.isEmpty) {
+      setState(() => _error = 'Enter your Family ID or phone and PIN.');
+      return;
+    }
     setState(() {
-      busy = true;
-      error = null;
+      _busy = true;
+      _error = null;
     });
     try {
-      final r = await Api.req('POST', '/family/login',
-          auth: false, body: {'phone': phone.text.trim(), 'pin': pw.text});
+      final r = await Api.req('POST', '/family/login', auth: false, body: {
+        'phone': _phone.text.trim(),
+        'pin': _pw.text,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('family_remember', _phone.text.trim());
+      } else {
+        await prefs.remove('family_remember');
+      }
       await Api.saveToken(r['token']);
       if (mounted) {
         Navigator.pushReplacement(
@@ -84,60 +219,166 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+        setState(
+            () => _error = e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext c) => AuthScaffold(
-        title: 'Family Login',
-        children: [
-          TextField(
-            controller: phone,
-            decoration: const InputDecoration(
-              labelText: 'Family ID or phone number',
-              hintText: 'FAM-XXXXXXXX or registered phone',
-              border: OutlineInputBorder(),
+  void dispose() {
+    _phone.dispose();
+    _pw.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: _canvas,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Center(child: _FamilyLogo()),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Sign in to your family account',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _ink),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Enter your Family ID or phone number and PIN',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _muted, fontSize: 13),
+                    ),
+                    const SizedBox(height: 24),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const _FieldLabel('Family ID or phone number'),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _phone,
+                              keyboardType: TextInputType.text,
+                              onSubmitted: (_) => _busy ? null : _login(),
+                              decoration: const InputDecoration(
+                                hintText: 'FAM-XXXXXXXX or 09XXXXXXXXX',
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            const _FieldLabel('Family PIN'),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _pw,
+                              obscureText: _hidePIN,
+                              keyboardType: TextInputType.number,
+                              onSubmitted: (_) => _busy ? null : _login(),
+                              decoration: InputDecoration(
+                                hintText: 'Enter your 4–6 digit PIN',
+                                suffixIcon: IconButton(
+                                  onPressed: () => setState(
+                                      () => _hidePIN = !_hidePIN),
+                                  icon: Icon(_hidePIN
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _rememberMe,
+                                  onChanged: (v) => setState(
+                                      () => _rememberMe = v ?? false),
+                                  activeColor: _blue,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                const SizedBox(width: 6),
+                                const Text('Remember me',
+                                    style: TextStyle(
+                                        fontSize: 13, color: _ink)),
+                              ],
+                            ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 10),
+                              Text(_error!,
+                                  style: const TextStyle(
+                                      color: Colors.red, fontSize: 13)),
+                            ],
+                            const SizedBox(height: 14),
+                            FilledButton(
+                              onPressed: _busy ? null : _login,
+                              child: _busy
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white))
+                                  : const Text('Sign in'),
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const ForgotPage())),
+                                child: const Text('Forgot password?',
+                                    style: TextStyle(
+                                        color: _blue,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text("Don't have an account? ",
+                                    style: TextStyle(
+                                        color: _muted, fontSize: 13)),
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const RegisterPage())),
+                                  child: const Text('Register family',
+                                      style: TextStyle(
+                                          color: _blue,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: pw,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Family PIN',
-              hintText: 'Enter your 4–6 digit PIN',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          if (error != null)
-            Text(
-              error!,
-              style: const TextStyle(color: Colors.red),
-            ),
-          FilledButton(
-            onPressed: busy ? null : login,
-            child: Text(busy ? 'Logging in…' : 'Login'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RegisterPage()),
-            ),
-            child: const Text('Register family'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ForgotPage()),
-            ),
-            child: const Text('Forgot password?'),
-          ),
-        ],
+        ),
       );
 }
 
@@ -183,7 +424,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final email = TextEditingController();
   final phone = TextEditingController();
   final address = TextEditingController();
-  final members = TextEditingController(text: '1');
+  // Dynamic list of member name controllers
+  final List<TextEditingController> _memberControllers = [TextEditingController()];
   final pw = TextEditingController();
   final confirm = TextEditingController();
   List<dynamic> puroks = [], locations = [];
@@ -210,6 +452,33 @@ class _RegisterPageState extends State<RegisterPage> {
     });
   }
 
+  @override
+  void dispose() {
+    family.dispose();
+    head.dispose();
+    email.dispose();
+    phone.dispose();
+    address.dispose();
+    for (final c in _memberControllers) {
+      c.dispose();
+    }
+    pw.dispose();
+    confirm.dispose();
+    super.dispose();
+  }
+
+  void _addMember() {
+    setState(() => _memberControllers.add(TextEditingController()));
+  }
+
+  void _removeMember(int index) {
+    if (_memberControllers.length <= 1) return;
+    setState(() {
+      _memberControllers[index].dispose();
+      _memberControllers.removeAt(index);
+    });
+  }
+
   Future<void> submit() async {
     if (!formKey.currentState!.validate()) return;
     if (purok == null || location == null) {
@@ -217,12 +486,20 @@ class _RegisterPageState extends State<RegisterPage> {
           error = 'Please select your assigned purok and barangay/location.');
       return;
     }
+    // Validate member names are not empty
+    for (int i = 0; i < _memberControllers.length; i++) {
+      if (_memberControllers[i].text.trim().isEmpty) {
+        setState(() => error = 'Member ${i + 1} name is required.');
+        return;
+      }
+    }
     setState(() {
       busy = true;
       error = null;
     });
     try {
       if (pw.text != confirm.text) throw Exception('PINs do not match.');
+      final memberNames = _memberControllers.map((c) => c.text.trim()).toList();
       final r = await Api.req(
         'POST',
         '/family/register',
@@ -233,7 +510,8 @@ class _RegisterPageState extends State<RegisterPage> {
           'email': email.text.trim(),
           'phone': phone.text.trim(),
           'address': address.text.trim(),
-          'household_member': int.parse(members.text),
+          'household_member': memberNames.length,
+          'member_names': memberNames,
           'purok_id': purok,
           'location_id': location,
           'pin': pw.text,
@@ -314,14 +592,66 @@ class _RegisterPageState extends State<RegisterPage> {
                     return null;
                   }),
                   field(address, 'Address'),
-                  field(members, 'Household Members',
-                      keyboard: TextInputType.number, validator: (v) {
-                    final n = int.tryParse(v ?? '');
-                    if (n == null || n < 1) {
-                      return 'Enter at least 1 household member';
-                    }
-                    return null;
+                  // Dynamic Household Members section
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Household Members (${_memberControllers.length})',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        TextButton.icon(
+                          onPressed: _addMember,
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add member'),
+                          style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...List.generate(_memberControllers.length, (i) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            child: Text(
+                              '${i + 1}.',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.grey),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _memberControllers[i],
+                              decoration: InputDecoration(
+                                labelText: 'Member ${i + 1} full name',
+                                border: const OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          if (_memberControllers.length > 1) ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(Icons.close,
+                                  size: 18, color: Colors.red),
+                              onPressed: () => _removeMember(i),
+                              tooltip: 'Remove member',
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
                   }),
+                  const SizedBox(height: 4),
                   DropdownButtonFormField<int>(
                     initialValue: purok,
                     decoration: const InputDecoration(
