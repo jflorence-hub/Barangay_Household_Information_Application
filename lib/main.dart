@@ -570,13 +570,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 children: [
                   field(family, 'Family Name (e.g. Dela Cruz Family)'),
                   field(head, 'Head of Family'),
-                  field(phone, 'Phone Number', keyboard: TextInputType.phone,
+                  field(phone, 'Phone Number (09XXXXXXXXX)', keyboard: TextInputType.phone,
                       validator: (v) {
                     if (v == null || v.trim().isEmpty) {
                       return 'Phone number is required';
                     }
-                    if (v.trim().length < 7) {
-                      return 'Enter a valid phone number';
+                    if (!RegExp(r'^09\d{9}$').hasMatch(v.trim())) {
+                      return 'Phone must be 11 digits starting with 09';
                     }
                     return null;
                   }),
@@ -686,16 +686,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     onChanged: (v) => setState(() => location = v),
                   ),
                   const SizedBox(height: 12),
-                  field(pw, 'Family PIN (4–6 digits)',
+                  field(pw, 'Family PIN (6 digits)',
                       secret: true,
                       keyboard: TextInputType.number, validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'PIN is required';
-                    if (!RegExp(r'^\d{4,6}$').hasMatch(v.trim())) {
-                      return 'PIN must be 4–6 digits';
+                    if (!RegExp(r'^\d{6}$').hasMatch(v.trim())) {
+                      return 'PIN must be exactly 6 digits';
                     }
                     return null;
                   }),
-                  field(confirm, 'Confirm Family PIN',
+                  field(confirm, 'Confirm Family PIN (6-digit PIN)',
                       secret: true,
                       keyboard: TextInputType.number, validator: (v) {
                     if (v == null || v.isEmpty) {
@@ -799,7 +799,7 @@ class _ForgotPageState extends State<ForgotPage> {
               keyboardType: TextInputType.number,
               obscureText: true,
               decoration: const InputDecoration(
-                  labelText: 'New Family PIN (4–6 digits)',
+                  labelText: 'New Family PIN (6-digit PIN)',
                   border: OutlineInputBorder())),
           const SizedBox(height: 10),
           TextField(
@@ -807,7 +807,7 @@ class _ForgotPageState extends State<ForgotPage> {
               keyboardType: TextInputType.number,
               obscureText: true,
               decoration: const InputDecoration(
-                  labelText: 'Confirm new Family PIN',
+                  labelText: 'Confirm new Family PIN (6-digit PIN)',
                   border: OutlineInputBorder()))
         ],
         if (error != null)
