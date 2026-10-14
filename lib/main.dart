@@ -1,10 +1,10 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
 
 String reliefQuantitySummary(Map<String, dynamic> d) {
-  final mainQuantity = d['quantity'] ?? '—';
+  final mainQuantity = d['quantity'] ?? 'â€”';
   final additional = (d['additional_resource'] ??
       d['additionalResource'] ??
       d['additional_resource_item']) as Map?;
@@ -15,7 +15,7 @@ String reliefQuantitySummary(Map<String, dynamic> d) {
       additionalName.isNotEmpty &&
       additionalQuantity != null) {
     lines.add(
-        'Additional relief: $additionalName • Quantity: $additionalQuantity');
+        'Additional relief: $additionalName â€¢ Quantity: $additionalQuantity');
   }
   return lines.join('\n');
 }
@@ -66,14 +66,14 @@ class FamilyApp extends StatelessWidget {
       home: const LoginPage());
 }
 
-// ─── Constants shared with login ─────────────────────────────────────────────
+// â”€â”€â”€ Constants shared with login â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const _blue = Color(0xff2563eb);
 const _ink = Color(0xff0f172a);
 const _muted = Color(0xff64748b);
 const _canvas = Color(0xfff6f8fc);
 
-// ─── Family App logo ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Family App logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FamilyLogo extends StatelessWidget {
   const _FamilyLogo();
@@ -192,7 +192,7 @@ class _FamilyLogo extends StatelessWidget {
   }
 }
 
-// ─── Field label helper ───────────────────────────────────────────────────────
+// â”€â”€â”€ Field label helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FieldLabel extends StatelessWidget {
   final String text;
@@ -206,7 +206,7 @@ class _FieldLabel extends StatelessWidget {
       );
 }
 
-// ─── Login Page ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Login Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -927,7 +927,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               FilledButton(
                                   onPressed: busy ? null : submit,
                                   child: Text(
-                                      busy ? 'Registering…' : 'Register')),
+                                      busy ? 'Registeringâ€¦' : 'Register')),
                               const SizedBox(height: 8),
                               TextButton(
                                   onPressed: () =>
@@ -1295,37 +1295,19 @@ class _FamilyHomeState extends State<FamilyHome> {
               decoration: BoxDecoration(
                   color: _blue,
                   borderRadius: BorderRadius.circular(11)),
-              child: const Center(
-                child: Text('BH',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13)),
-              ),
+              child: const Icon(Icons.house_rounded,
+                  color: Colors.white, size: 22),
             ),
             const SizedBox(width: 10),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Barangay Household',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
-                  Text('Information System',
-                      style: TextStyle(color: _muted, fontSize: 11)),
-                ],
-              ),
-            ),
+            const Text('My Home',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ]),
-          actions: [
-            IconButton(
-                onPressed: _logout, icon: const Icon(Icons.logout))
-          ]),
-      body: IndexedStack(index: tab, children: const [
-        RecordsPage(),
-        UpcomingDistributionPage(),
-        ProfilePage(),
-        MessagesPage()
+          actions: const []),
+      body: IndexedStack(index: tab, children: [
+        const RecordsPage(),
+        const UpcomingDistributionPage(),
+        ProfilePage(onLogout: _logout),
+        const MessagesPage(),
       ]),
       bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
@@ -1333,9 +1315,12 @@ class _FamilyHomeState extends State<FamilyHome> {
           destinations: const [
             NavigationDestination(
                 icon: Icon(Icons.history), label: 'My Records'),
-            NavigationDestination(icon: Icon(Icons.event), label: 'Schedule'),
-            NavigationDestination(icon: Icon(Icons.home), label: 'Family Info'),
-            NavigationDestination(icon: Icon(Icons.chat), label: 'Messages')
+            NavigationDestination(
+                icon: Icon(Icons.event), label: 'Schedule'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline), label: 'Profile'),
+            NavigationDestination(
+                icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
           ]));
 }
 
@@ -1349,6 +1334,23 @@ class RecordsPage extends StatefulWidget {
 class _RecordsPageState extends State<RecordsPage> {
   late Future<Map<String, dynamic>> future =
       Api.req('GET', '/family/distributions');
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) {
+        setState(() => future = Api.req('GET', '/family/distributions'));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 
   Color _statusColor(dynamic s) {
     final v = s?.toString().toLowerCase() ?? '';
@@ -1371,6 +1373,79 @@ class _RecordsPageState extends State<RecordsPage> {
     }
   }
 
+  String _fmtTime(dynamic raw) {
+    if (raw == null || raw.toString().isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final m = dt.minute.toString().padLeft(2, '0');
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$h:$m $ampm';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  void _showDetail(BuildContext context, Map<String, dynamic> d,
+      Map<String, dynamic> family, List members) {
+    final statusStr = d['status']?.toString() ?? 'pending';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (_, ctrl) => ListView(
+          controller: ctrl,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: const Color(0xffcbd5e1),
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text('Distribution Details',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: _ink)),
+            const SizedBox(height: 16),
+            _FamilyDetailRow('Family Name', family['family_name']?.toString()),
+            _FamilyDetailRow('Family Head', family['head_name']?.toString()),
+            _FamilyDetailRow('Claimed By',
+                d['claimed_by']?.toString().isNotEmpty == true
+                    ? d['claimed_by'].toString()
+                    : (d['recipient_name']?.toString().isNotEmpty == true
+                        ? d['recipient_name'].toString()
+                        : 'â€”')),
+            _FamilyDetailRow('Purok', family['purok']?.toString()),
+            _FamilyDetailRow('Household Members',
+                '${members.length} member(s)'),
+            _FamilyDetailRow(
+                'Relief', d['resource']?['name']?.toString()),
+            _FamilyDetailRow('Quantity', d['quantity']?.toString()),
+            _FamilyDetailRow('Scan Status', statusStr),
+            _FamilyDetailRow('Scanned By', d['distributor']?['name']?.toString()),
+            _FamilyDetailRow(
+                'Location', d['location']?['name']?.toString()),
+            _FamilyDetailRow(
+                'Date', _fmtDate(d['distribution_date'])),
+            _FamilyDetailRow(
+                'Time', _fmtTime(d['distribution_date'])),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext c) => FutureBuilder(
         future: future,
@@ -1378,7 +1453,16 @@ class _RecordsPageState extends State<RecordsPage> {
           if (!s.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          final rows = s.data!['distributions'] as List? ?? [];
+          final family = s.data!['family'] as Map<String, dynamic>? ?? {};
+          final members = s.data!['household_members'] as List? ?? [];
+          final rows = (s.data!['distributions'] as List? ?? [])
+              .where((d) {
+                final status = d['status']?.toString().toLowerCase() ?? '';
+                return status == 'completed' ||
+                    status == 'cancelled' ||
+                    status == 'canceled';
+              })
+              .toList();
           if (rows.isEmpty) {
             return const Center(child: Text('No distribution records yet.'));
           }
@@ -1390,74 +1474,81 @@ class _RecordsPageState extends State<RecordsPage> {
               children: rows
                   .map<Widget>((d) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                    color: const Color(0xfff0fdfa),
-                                    borderRadius:
-                                        BorderRadius.circular(13)),
-                                child: const Icon(
-                                    Icons.inventory_2_outlined,
-                                    color: Color(0xff0d9488)),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      d['resource']?['name']
-                                              ?.toString() ??
-                                          'Relief not assigned',
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700),
-                                    ),
-                                    Text(
-                                      reliefQuantitySummary(
-                                          Map<String, dynamic>.from(d)),
-                                      style: const TextStyle(
-                                          fontSize: 12, color: _muted),
-                                    ),
-                                    Text(
-                                      _fmtDate(d['distribution_date']),
-                                      style: const TextStyle(
-                                          fontSize: 11, color: _muted),
-                                    ),
-                                    Container(
-                                      margin: const EdgeInsets.only(
-                                          top: 4),
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: _statusColor(d['status'])
-                                            .withValues(alpha: 0.1),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        d['status']?.toString() ??
-                                            'pending',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: _statusColor(
-                                                d['status']),
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                    ),
-                                  ],
+                        child: GestureDetector(
+                          onTap: () => _showDetail(
+                              c,
+                              Map<String, dynamic>.from(d),
+                              family,
+                              members),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xfff0fdfa),
+                                      borderRadius:
+                                          BorderRadius.circular(13)),
+                                  child: const Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: Color(0xff0d9488)),
                                 ),
-                              ),
-                              const Icon(Icons.chevron_right,
-                                  color: Color(0xff94a3b8)),
-                            ]),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        d['resource']?['name']
+                                                ?.toString() ??
+                                            'Relief not assigned',
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700),
+                                      ),
+                                      Text(
+                                        reliefQuantitySummary(
+                                            Map<String, dynamic>.from(d)),
+                                        style: const TextStyle(
+                                            fontSize: 12, color: _muted),
+                                      ),
+                                      Text(
+                                        _fmtDate(d['distribution_date']),
+                                        style: const TextStyle(
+                                            fontSize: 11, color: _muted),
+                                      ),
+                                      Container(
+                                        margin: const EdgeInsets.only(
+                                            top: 4),
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: _statusColor(d['status'])
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          d['status']?.toString() ??
+                                              'pending',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: _statusColor(
+                                                  d['status']),
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right,
+                                    color: Color(0xff94a3b8)),
+                              ]),
+                            ),
                           ),
                         ),
                       ))
@@ -1507,13 +1598,6 @@ class _UpcomingDistributionPageState
     super.dispose();
   }
 
-  Color _statusColor(dynamic s) {
-    final v = s?.toString().toLowerCase() ?? '';
-    if (v == 'completed') return const Color(0xff059669);
-    if (v == 'cancelled' || v == 'canceled') return const Color(0xffdc2626);
-    return const Color(0xfff59e0b);
-  }
-
   String _fmtDate(dynamic raw) {
     if (raw == null || raw.toString().isEmpty) return 'Date not set';
     try {
@@ -1526,6 +1610,78 @@ class _UpcomingDistributionPageState
     } catch (_) {
       return raw.toString();
     }
+  }
+
+  String _fmtTime(dynamic raw) {
+    if (raw == null || raw.toString().isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final m = dt.minute.toString().padLeft(2, '0');
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$h:$m $ampm';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  void _showDetail(BuildContext context, Map<String, dynamic> d,
+      Map<String, dynamic> family, List members) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (_, ctrl) => ListView(
+          controller: ctrl,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: const Color(0xffcbd5e1),
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text('Upcoming Distribution',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: _ink)),
+            const SizedBox(height: 16),
+            _FamilyDetailRow('Family Name', family['family_name']?.toString()),
+            _FamilyDetailRow('Family Head', family['head_name']?.toString()),
+            _FamilyDetailRow('Claimed By',
+                d['claimed_by']?.toString().isNotEmpty == true
+                    ? d['claimed_by'].toString()
+                    : (d['recipient_name']?.toString().isNotEmpty == true
+                        ? d['recipient_name'].toString()
+                        : 'â€”')),
+            _FamilyDetailRow('Purok', family['purok']?.toString()),
+            _FamilyDetailRow('Household Members',
+                '${members.length} member(s)'),
+            _FamilyDetailRow(
+                'Relief', d['resource']?['name']?.toString()),
+            _FamilyDetailRow('Quantity', d['quantity']?.toString()),
+            const _FamilyDetailRow('Scan Status', 'Pending'),
+            _FamilyDetailRow('Scanned By', d['distributor']?['name']?.toString()),
+            _FamilyDetailRow(
+                'Location', d['location']?['name']?.toString()),
+            _FamilyDetailRow(
+                'Date', _fmtDate(d['distribution_date'])),
+            _FamilyDetailRow(
+                'Time', _fmtTime(d['distribution_date'])),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1551,20 +1707,17 @@ class _UpcomingDistributionPageState
           );
         }
 
+        final family =
+            snapshot.data?['family'] as Map<String, dynamic>? ?? {};
+        final members =
+            snapshot.data?['household_members'] as List? ?? [];
+
         final rows =
             (snapshot.data?['distributions'] as List? ?? [])
-                .where((d) {
-          final raw = d['distribution_date'];
-
-          if (raw == null) return false;
-
-          try {
-            return !DateTime.parse(raw.toString())
-                .isBefore(DateTime.now());
-          } catch (_) {
-            return false;
-          }
-        }).toList();
+                .where((d) =>
+                    (d['status']?.toString().toLowerCase() ?? '') ==
+                    'pending')
+                .toList();
 
         if (rows.isEmpty) {
           return ListView(
@@ -1572,11 +1725,12 @@ class _UpcomingDistributionPageState
             padding: const EdgeInsets.all(20),
             children: const [
               SizedBox(height: 40),
-              Icon(Icons.event_busy, size: 56),
+              Icon(Icons.event_busy_outlined, size: 56, color: _muted),
               SizedBox(height: 12),
               Text(
-                'No upcoming relief distribution has been scheduled yet.',
+                'No upcoming distributions scheduled',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: _muted),
               ),
             ],
           );
@@ -1585,101 +1739,89 @@ class _UpcomingDistributionPageState
         return RefreshIndicator(
           onRefresh: () async {
             setState(() {
-              future = Api.req(
-                'GET',
-                '/family/distributions',
-              );
+              future = Api.req('GET', '/family/distributions');
             });
-
             await future;
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             children: [
-              Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Text(
-                    'Your family has a distribution record for '
-                    'the following upcoming schedule(s). '
-                    'Check the status below.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              ),
-
               ...rows.map<Widget>((d) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                                color: const Color(0xfff0fdfa),
-                                borderRadius:
-                                    BorderRadius.circular(13)),
-                            child: const Icon(
-                                Icons.volunteer_activism,
-                                color: Color(0xff0d9488)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  d['resource']?['name']
-                                          ?.toString() ??
-                                      'Relief not assigned',
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                                Text(
-                                  reliefQuantitySummary(
-                                      Map<String, dynamic>.from(d)),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: _muted),
-                                ),
-                                Text(
-                                  _fmtDate(d['distribution_date']),
-                                  style: const TextStyle(
-                                      fontSize: 11, color: _muted),
-                                ),
-                                Container(
-                                  margin:
-                                      const EdgeInsets.only(top: 4),
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: _statusColor(d['status'])
-                                        .withValues(alpha: 0.1),
-                                    borderRadius:
-                                        BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    d['status']?.toString() ??
-                                        'pending',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color:
-                                            _statusColor(d['status']),
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
+                    child: GestureDetector(
+                      onTap: () => _showDetail(
+                          context,
+                          Map<String, dynamic>.from(d),
+                          family,
+                          members),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                  color: const Color(0xfff0fdfa),
+                                  borderRadius:
+                                      BorderRadius.circular(13)),
+                              child: const Icon(
+                                  Icons.volunteer_activism,
+                                  color: Color(0xff0d9488)),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right,
-                              color: Color(0xff94a3b8)),
-                        ]),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    d['resource']?['name']
+                                            ?.toString() ??
+                                        'Relief not assigned',
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                  Text(
+                                    reliefQuantitySummary(
+                                        Map<String, dynamic>.from(d)),
+                                    style: const TextStyle(
+                                        fontSize: 12, color: _muted),
+                                  ),
+                                  Text(
+                                    _fmtDate(d['distribution_date']),
+                                    style: const TextStyle(
+                                        fontSize: 11, color: _muted),
+                                  ),
+                                  Container(
+                                    margin:
+                                        const EdgeInsets.only(top: 4),
+                                    padding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xfff59e0b)
+                                          .withValues(alpha: 0.1),
+                                      borderRadius:
+                                          BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'pending',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xfff59e0b),
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right,
+                                color: Color(0xff94a3b8)),
+                          ]),
+                        ),
                       ),
                     ),
                   )),
@@ -1692,7 +1834,7 @@ class _UpcomingDistributionPageState
 }
 
 
-// ─── Family Detail Row helper ─────────────────────────────────────────────────
+// â”€â”€â”€ Family Detail Row helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FamilyDetailRow extends StatelessWidget {
   const _FamilyDetailRow(this.label, this.value);
@@ -1721,7 +1863,8 @@ class _FamilyDetailRow extends StatelessWidget {
 }
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, required this.onLogout});
+  final VoidCallback onLogout;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -1738,6 +1881,7 @@ class _ProfilePageState extends State<ProfilePage> {
             return const Center(child: CircularProgressIndicator());
           }
           final f = s.data!['family'] as Map<String, dynamic>? ?? {};
+          final members = s.data!['household_members'] as List? ?? [];
           return RefreshIndicator(
             onRefresh: () async =>
                 setState(() => future = Api.req('GET', '/family/me')),
@@ -1801,16 +1945,81 @@ class _ProfilePageState extends State<ProfilePage> {
                       _FamilyDetailRow(
                           'Head of Family', f['head_name']?.toString()),
                       _FamilyDetailRow('Household Members',
-                          '${f['household_member'] ?? '—'} member(s)'),
+                          '${f['household_member'] ?? 'â€”'} member(s)'),
                       _FamilyDetailRow(
                           'Purok', f['purok']?['name']?.toString()),
                       _FamilyDetailRow('Barangay / Location',
                           f['location']?['name']?.toString()),
+                      _FamilyDetailRow('Address', f['address']?.toString()),
                       _FamilyDetailRow(
                           'Status', f['status']?.toString()),
                     ]),
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Household Members card
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Household Members',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: _ink)),
+                        const SizedBox(height: 12),
+                        if (members.isEmpty)
+                          const Text('No household members recorded.',
+                              style:
+                                  TextStyle(color: _muted, fontSize: 13))
+                        else
+                          ...members.map<Widget>((m) {
+                            final idx =
+                                m['number']?.toString() ?? '';
+                            final name = m['name']?.toString() ??
+                                'Member #$idx';
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 24,
+                                    child: Text('$idx.',
+                                        style: const TextStyle(
+                                            fontSize: 13, color: _muted)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(name,
+                                      style: const TextStyle(
+                                          fontSize: 13, color: _ink)),
+                                ],
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Log Out button
+                OutlinedButton.icon(
+                  onPressed: widget.onLogout,
+                  icon: const Icon(Icons.logout,
+                      color: Colors.red, size: 18),
+                  label: const Text('Log Out',
+                      style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           );
@@ -2108,7 +2317,7 @@ class _MessagesPageState extends State<MessagesPage> {
                 controller: text,
                 maxLines: null,
                 decoration: const InputDecoration(
-                    hintText: 'Message administrator…',
+                    hintText: 'Message administratorâ€¦',
                     contentPadding: EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10)),
               ),
