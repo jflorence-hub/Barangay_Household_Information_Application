@@ -1302,7 +1302,13 @@ class _FamilyHomeState extends State<FamilyHome> {
             const Text('My Home',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ]),
-          actions: const []),
+          actions: [
+            IconButton(
+              tooltip: 'Announcements',
+              icon: const Icon(Icons.notifications_none_rounded),
+              onPressed: () => _checkAnnouncements(),
+            ),
+          ]),
       body: IndexedStack(index: tab, children: [
         const RecordsPage(),
         const UpcomingDistributionPage(),
@@ -1423,12 +1429,12 @@ class _RecordsPageState extends State<RecordsPage> {
             _FamilyDetailRow('Claimed By',
                 d['claimed_by']?.toString().isNotEmpty == true
                     ? d['claimed_by'].toString()
-                    : (d['recipient_name']?.toString().isNotEmpty == true
-                        ? d['recipient_name'].toString()
-                        : '—')),
+                    : (d['receiver']?.toString().isNotEmpty == true
+                        ? d['receiver'].toString()
+                        : family['head_name']?.toString() ?? '—')),
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
-                '${members.length} member(s)'),
+                '${family['household_member'] ?? members.length} member(s)'),
             _FamilyDetailRow(
                 'Relief', d['resource']?['name']?.toString()),
             _FamilyDetailRow('Quantity', d['quantity']?.toString()),
@@ -1658,15 +1664,9 @@ class _UpcomingDistributionPageState
             const SizedBox(height: 16),
             _FamilyDetailRow('Family Name', family['family_name']?.toString()),
             _FamilyDetailRow('Family Head', family['head_name']?.toString()),
-            _FamilyDetailRow('Claimed By',
-                d['claimed_by']?.toString().isNotEmpty == true
-                    ? d['claimed_by'].toString()
-                    : (d['recipient_name']?.toString().isNotEmpty == true
-                        ? d['recipient_name'].toString()
-                        : '—')),
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
-                '${members.length} member(s)'),
+                '${family['household_member'] ?? members.length} member(s)'),
             _FamilyDetailRow(
                 'Relief', d['resource']?['name']?.toString()),
             _FamilyDetailRow('Quantity', d['quantity']?.toString()),
@@ -2138,36 +2138,33 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final grouped = _groupByDate();
     return Column(
       children: [
         // Header
         Container(
           color: Colors.white,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(
-                bottom: BorderSide(color: Color(0xffe8edf5))),
+            border: Border(bottom: BorderSide(color: Color(0xffe8edf5))),
           ),
           child: Row(children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 36, height: 36,
               decoration: BoxDecoration(
                   color: const Color(0xffdbeafe),
                   borderRadius: BorderRadius.circular(18)),
-              child: const Icon(Icons.groups_outlined,
-                  color: _blue, size: 20),
+              child: const Icon(Icons.groups_outlined, color: _blue, size: 20),
             ),
             const SizedBox(width: 10),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Administrator',
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                 Text('Barangay Household Support',
                     style: TextStyle(color: _muted, fontSize: 11)),
               ],
@@ -2176,7 +2173,7 @@ class _MessagesPageState extends State<MessagesPage> {
         ),
         // Messages list
         Expanded(
-          child: _messages.isEmpty
+          child: grouped.isEmpty
               ? const Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -2184,87 +2181,61 @@ class _MessagesPageState extends State<MessagesPage> {
                       Icon(Icons.chat_bubble_outline,
                           size: 56, color: Color(0xffcbd5e1)),
                       SizedBox(height: 12),
-                      Text('No messages yet',
+                      Text('No messages yet. Write to admin below.',
                           style: TextStyle(color: _muted)),
                     ],
                   ),
                 )
               : ListView.builder(
                   controller: _scrollCtrl,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  itemCount: _groupByDate().length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  itemCount: grouped.length,
                   itemBuilder: (context, index) {
-                    final items = _groupByDate();
-                    final item = items[index];
+                    final item = grouped[index];
                     if (item['type'] == 'date') {
                       return Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Row(children: [
                           const Expanded(child: Divider()),
                           Container(
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 8),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                                 color: const Color(0xfff1f5f9),
-                                borderRadius:
-                                    BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12)),
                             child: Text(item['label']?.toString() ?? '',
-                                style: const TextStyle(
-                                    fontSize: 11, color: _muted)),
+                                style: const TextStyle(fontSize: 11, color: _muted)),
                           ),
                           const Expanded(child: Divider()),
                         ]),
                       );
                     }
-                    final m =
-                        item['data'] as Map<String, dynamic>? ?? {};
-                    final isSelf = m['sender_type'] == 'family' ||
-                        m['sender_type'] == 'user';
+                    final m = item['data'] as Map<String, dynamic>? ?? {};
+                    final isSelf = m['sender_type'] == 'family' || m['sender_type'] == 'user';
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Column(
-                        crossAxisAlignment: isSelf
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
+                        crossAxisAlignment: isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: isSelf
-                                ? MainAxisAlignment.end
-                                : MainAxisAlignment.start,
+                            mainAxisAlignment: isSelf ? MainAxisAlignment.end : MainAxisAlignment.start,
                             children: [
                               ConstrainedBox(
-                                constraints: BoxConstraints(
-                                    maxWidth: screenWidth * 0.72),
+                                constraints: BoxConstraints(maxWidth: screenWidth * 0.72),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: isSelf
-                                        ? _blue
-                                        : Colors.white,
+                                    color: isSelf ? _blue : Colors.white,
                                     borderRadius: BorderRadius.only(
-                                      topLeft:
-                                          const Radius.circular(18),
-                                      topRight:
-                                          const Radius.circular(18),
-                                      bottomLeft: Radius.circular(
-                                          isSelf ? 18 : 4),
-                                      bottomRight: Radius.circular(
-                                          isSelf ? 4 : 18),
+                                      topLeft: const Radius.circular(18),
+                                      topRight: const Radius.circular(18),
+                                      bottomLeft: Radius.circular(isSelf ? 18 : 4),
+                                      bottomRight: Radius.circular(isSelf ? 4 : 18),
                                     ),
-                                    border: isSelf
-                                        ? null
-                                        : Border.all(
-                                            color: const Color(
-                                                0xffe2e8f0)),
+                                    border: isSelf ? null : Border.all(color: const Color(0xffe2e8f0)),
                                     boxShadow: [
                                       BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.04),
+                                          color: Colors.black.withValues(alpha: 0.04),
                                           blurRadius: 4,
                                           offset: const Offset(0, 2)),
                                     ],
@@ -2273,22 +2244,17 @@ class _MessagesPageState extends State<MessagesPage> {
                                     m['message']?.toString() ?? '',
                                     style: TextStyle(
                                         fontSize: 14,
-                                        color: isSelf
-                                            ? Colors.white
-                                            : _ink),
+                                        color: isSelf ? Colors.white : _ink),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(
-                                top: 2, left: 4, right: 4),
+                            padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
                             child: Text(
-                              _formatTime(
-                                  m['created_at']?.toString()),
-                              style: const TextStyle(
-                                  fontSize: 10, color: _muted),
+                              _formatTime(m['created_at']?.toString()),
+                              style: const TextStyle(fontSize: 10, color: _muted),
                             ),
                           ),
                         ],
@@ -2300,16 +2266,14 @@ class _MessagesPageState extends State<MessagesPage> {
         if (error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(error!,
-                style: const TextStyle(color: Colors.red, fontSize: 12)),
+            child: Text(error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
           ),
         // Compose area
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           decoration: const BoxDecoration(
-            border:
-                Border(top: BorderSide(color: Color(0xffe8edf5))),
+            border: Border(top: BorderSide(color: Color(0xffe8edf5))),
           ),
           child: Row(children: [
             Expanded(
@@ -2317,9 +2281,8 @@ class _MessagesPageState extends State<MessagesPage> {
                 controller: text,
                 maxLines: null,
                 decoration: const InputDecoration(
-                    hintText: 'Message administrator…',
-                    contentPadding: EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10)),
+                    hintText: 'Write a message to admin…',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
               ),
             ),
             const SizedBox(width: 8),
@@ -2327,10 +2290,8 @@ class _MessagesPageState extends State<MessagesPage> {
               onPressed: _sending ? null : send,
               icon: _sending
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: _blue))
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
                   : const Icon(Icons.send_rounded, color: _blue),
               style: IconButton.styleFrom(
                   backgroundColor: const Color(0xffeff6ff),
