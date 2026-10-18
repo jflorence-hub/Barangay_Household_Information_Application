@@ -40,8 +40,18 @@ class _RecordsPageState extends State<RecordsPage> {
     try {
       final dt = DateTime.parse(raw.toString()).toLocal();
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
       ];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
@@ -81,7 +91,8 @@ class _RecordsPageState extends State<RecordsPage> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                     color: const Color(0xffcbd5e1),
                     borderRadius: BorderRadius.circular(2)),
@@ -90,13 +101,12 @@ class _RecordsPageState extends State<RecordsPage> {
             const SizedBox(height: 14),
             const Text('Distribution Details',
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: _ink)),
+                    fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
             const SizedBox(height: 16),
             _FamilyDetailRow('Head of Family', family['head_name']?.toString()),
             _FamilyDetailRow('Family Head', family['head_name']?.toString()),
-            _FamilyDetailRow('Claimed By',
+            _FamilyDetailRow(
+                'Claimed By',
                 d['claimed_by']?.toString().isNotEmpty == true
                     ? d['claimed_by'].toString()
                     : (d['receiver']?.toString().isNotEmpty == true
@@ -105,17 +115,13 @@ class _RecordsPageState extends State<RecordsPage> {
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
                 '${family['household_member'] ?? members.length} member(s)'),
-            _FamilyDetailRow(
-                'Relief', d['resource']?['name']?.toString()),
+            _FamilyDetailRow('Relief', d['resource']?['name']?.toString()),
             _FamilyDetailRow('Quantity', d['quantity']?.toString()),
             _FamilyDetailRow('Scan Status', statusStr),
-            _FamilyDetailRow('Scanned By', d['distributor']?['name']?.toString()),
-            _FamilyDetailRow(
-                'Location', d['location']?['name']?.toString()),
-            _FamilyDetailRow(
-                'Date', _fmtDate(d['distribution_date'])),
-            _FamilyDetailRow(
-                'Time', _fmtTime(d['distribution_date'])),
+            _FamilyDetailRow('Scanned By', d['scanned_by']?.toString()),
+            _FamilyDetailRow('Location', d['location']?['name']?.toString()),
+            _FamilyDetailRow('Date', _fmtDate(d['distribution_date'])),
+            _FamilyDetailRow('Time', _fmtTime(d['distribution_date'])),
           ],
         ),
       ),
@@ -131,14 +137,12 @@ class _RecordsPageState extends State<RecordsPage> {
           }
           final family = s.data!['family'] as Map<String, dynamic>? ?? {};
           final members = s.data!['household_members'] as List? ?? [];
-          final rows = (s.data!['distributions'] as List? ?? [])
-              .where((d) {
-                final status = d['status']?.toString().toLowerCase() ?? '';
-                return status == 'completed' ||
-                    status == 'cancelled' ||
-                    status == 'canceled';
-              })
-              .toList();
+          final rows = (s.data!['distributions'] as List? ?? []).where((d) {
+            final status = d['status']?.toString().toLowerCase() ?? '';
+            return status == 'completed' ||
+                status == 'cancelled' ||
+                status == 'canceled';
+          }).toList();
           if (rows.isEmpty) {
             return const Center(child: Text('No distribution records yet.'));
           }
@@ -152,10 +156,7 @@ class _RecordsPageState extends State<RecordsPage> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: GestureDetector(
                           onTap: () => _showDetail(
-                              c,
-                              Map<String, dynamic>.from(d),
-                              family,
-                              members),
+                              c, Map<String, dynamic>.from(d), family, members),
                           child: Card(
                             child: Padding(
                               padding: const EdgeInsets.all(14),
@@ -165,10 +166,8 @@ class _RecordsPageState extends State<RecordsPage> {
                                   height: 44,
                                   decoration: BoxDecoration(
                                       color: const Color(0xfff0fdfa),
-                                      borderRadius:
-                                          BorderRadius.circular(13)),
-                                  child: const Icon(
-                                      Icons.inventory_2_outlined,
+                                      borderRadius: BorderRadius.circular(13)),
+                                  child: const Icon(Icons.inventory_2_outlined,
                                       color: Color(0xff0d9488)),
                                 ),
                                 const SizedBox(width: 12),
@@ -178,8 +177,7 @@ class _RecordsPageState extends State<RecordsPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        d['resource']?['name']
-                                                ?.toString() ??
+                                        d['resource']?['name']?.toString() ??
                                             'Relief not assigned',
                                         style: const TextStyle(
                                             fontSize: 14,
@@ -197,11 +195,9 @@ class _RecordsPageState extends State<RecordsPage> {
                                             fontSize: 11, color: _muted),
                                       ),
                                       Container(
-                                        margin: const EdgeInsets.only(
-                                            top: 4),
-                                        padding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 3),
+                                        margin: const EdgeInsets.only(top: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: _statusColor(d['status'])
                                               .withValues(alpha: 0.1),
@@ -209,12 +205,10 @@ class _RecordsPageState extends State<RecordsPage> {
                                               BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          d['status']?.toString() ??
-                                              'pending',
+                                          d['status']?.toString() ?? 'pending',
                                           style: TextStyle(
                                               fontSize: 11,
-                                              color: _statusColor(
-                                                  d['status']),
+                                              color: _statusColor(d['status']),
                                               fontWeight: FontWeight.w600),
                                         ),
                                       ),
@@ -234,5 +228,3 @@ class _RecordsPageState extends State<RecordsPage> {
         },
       );
 }
-
-

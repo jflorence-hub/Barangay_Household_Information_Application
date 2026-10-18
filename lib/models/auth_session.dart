@@ -1,8 +1,9 @@
 class AuthSession {
   final String token;
   final String? role;
+  final bool mustChangePin;
 
-  const AuthSession({required this.token, this.role});
+  const AuthSession({required this.token, this.role, this.mustChangePin = false});
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
     final token = json['token'];
@@ -13,6 +14,7 @@ class AuthSession {
 
     final user = json['user'];
     final role = user is Map ? user['role']?.toString() : null;
-    return AuthSession(token: token, role: role);
+    final mustChangePin = json['must_change_pin'] == true;
+    return AuthSession(token: token, role: role, mustChangePin: mustChangePin);
   }
 }

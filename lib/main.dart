@@ -30,6 +30,14 @@ String reliefQuantitySummary(Map<String, dynamic> d) {
   return lines.join('\n');
 }
 
+String distributionReliefName(Map<String, dynamic> d) {
+  final resourceSet = (d['resource_set'] ?? d['resourceSet']) as Map?;
+  final resource = d['resource'] as Map?;
+  return resourceSet?['name']?.toString() ??
+      resource?['name']?.toString() ??
+      'Relief not assigned';
+}
+
 void main() => runApp(const FamilyApp());
 
 class FamilyApp extends StatelessWidget {

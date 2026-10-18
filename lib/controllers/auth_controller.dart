@@ -16,4 +16,20 @@ class AuthController {
     await Api.saveToken(session.token);
     return session;
   }
+
+  /// Change the PIN while logged in. Used after a bulk import sets
+  /// must_change_pin = true — the user enters their temp PIN and a new one.
+  Future<void> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    await Api.req(
+      'POST',
+      '/family/change-pin',
+      body: {
+        'current_pin': currentPin,
+        'new_pin': newPin,
+      },
+    );
+  }
 }

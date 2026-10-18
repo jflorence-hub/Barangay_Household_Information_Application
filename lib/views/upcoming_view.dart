@@ -8,8 +8,7 @@ class UpcomingDistributionPage extends StatefulWidget {
       _UpcomingDistributionPageState();
 }
 
-class _UpcomingDistributionPageState
-    extends State<UpcomingDistributionPage> {
+class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
   late Future<Map<String, dynamic>> future =
       Api.req('GET', '/family/distributions');
 
@@ -43,8 +42,18 @@ class _UpcomingDistributionPageState
     try {
       final dt = DateTime.parse(raw.toString()).toLocal();
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
       ];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
@@ -65,8 +74,61 @@ class _UpcomingDistributionPageState
     }
   }
 
-  void _showDetail(BuildContext context, Map<String, dynamic> d,
-      Map<String, dynamic> family, List members) {
+  Future<void> _confirmReceipt(
+      Map<String, dynamic> distribution, String memberName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm relief received?'),
+        content: Text(
+          'Confirm that $memberName received this relief. This will record the receipt and update inventory.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Not yet'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm received'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await Api.req(
+        'POST',
+        '/family/distributions/${distribution['id']}/confirm',
+      );
+      if (!mounted) return;
+      setState(() {
+        future = Api.req('GET', '/family/distributions');
+      });
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Receipt recorded for $memberName.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not confirm receipt: ${error.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showDetail(
+    BuildContext context,
+    Map<String, dynamic> d,
+    Map<String, dynamic> family,
+    List members,
+    Map<String, dynamic>? authenticatedMember,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -83,7 +145,8 @@ class _UpcomingDistributionPageState
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                     color: const Color(0xffcbd5e1),
                     borderRadius: BorderRadius.circular(2)),
@@ -92,26 +155,48 @@ class _UpcomingDistributionPageState
             const SizedBox(height: 14),
             const Text('Upcoming Distribution',
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: _ink)),
+                    fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
             const SizedBox(height: 16),
-            _FamilyDetailRow('Head of Family', family['head_name']?.toString()),
             _FamilyDetailRow('Family Head', family['head_name']?.toString()),
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
                 '${family['household_member'] ?? members.length} member(s)'),
-            _FamilyDetailRow(
-                'Relief', d['resource']?['name']?.toString()),
+            _FamilyDetailRow('Relief', distributionReliefName(d)),
             _FamilyDetailRow('Quantity', d['quantity']?.toString()),
             const _FamilyDetailRow('Scan Status', 'Pending'),
-            _FamilyDetailRow('Scanned By', d['distributor']?['name']?.toString()),
             _FamilyDetailRow(
-                'Location', d['location']?['name']?.toString()),
-            _FamilyDetailRow(
-                'Date', _fmtDate(d['distribution_date'])),
-            _FamilyDetailRow(
-                'Time', _fmtTime(d['distribution_date'])),
+                'Received By',
+                d['claimed_by']?.toString() ??
+                    authenticatedMember?['name']?.toString()),
+            _FamilyDetailRow('Scanned By', d['scanned_by']?.toString()),
+            _FamilyDetailRow('Location', d['location']?['name']?.toString()),
+            _FamilyDetailRow('Date', _fmtDate(d['distribution_date'])),
+            _FamilyDetailRow('Time', _fmtTime(d['distribution_date'])),
+            if (authenticatedMember != null &&
+                d['status']?.toString() == 'pending' &&
+                d['excluded'] != true &&
+                d['excluded']?.toString() != '1' &&
+                d['claim_window_open'] == true) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () => _confirmReceipt(
+                  d,
+                  authenticatedMember['name']?.toString() ?? 'Member',
+                ),
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Confirm relief received'),
+              ),
+            ] else if (authenticatedMember != null &&
+                d['status']?.toString() == 'pending' &&
+                d['excluded'] != true &&
+                d['excluded']?.toString() != '1') ...[
+              const SizedBox(height: 12),
+              Text(
+                d['claim_window_message']?.toString() ??
+                    'Receipt confirmation is not currently available.',
+                style: const TextStyle(color: _muted, fontSize: 13),
+              ),
+            ],
           ],
         ),
       ),
@@ -141,19 +226,18 @@ class _UpcomingDistributionPageState
           );
         }
 
-        final family =
-            snapshot.data?['family'] as Map<String, dynamic>? ?? {};
-        final members =
-            snapshot.data?['household_members'] as List? ?? [];
+        final family = snapshot.data?['family'] as Map<String, dynamic>? ?? {};
+        final members = snapshot.data?['household_members'] as List? ?? [];
+        final authenticatedMember =
+            snapshot.data?['authenticated_member'] as Map<String, dynamic>?;
 
         final rows =
-            (snapshot.data?['distributions'] as List? ?? [])
-                .where((d) {
-                  final status = d['status']?.toString().toLowerCase() ?? '';
-                  final isExcluded = d['excluded'] == true || d['excluded']?.toString() == '1';
-                  return status == 'pending' || isExcluded;
-                })
-                .toList();
+            (snapshot.data?['distributions'] as List? ?? []).where((d) {
+          final status = d['status']?.toString().toLowerCase() ?? '';
+          final isExcluded =
+              d['excluded'] == true || d['excluded']?.toString() == '1';
+          return status == 'pending' || isExcluded;
+        }).toList();
 
         if (rows.isEmpty) {
           return ListView(
@@ -190,7 +274,8 @@ class _UpcomingDistributionPageState
                           context,
                           Map<String, dynamic>.from(d),
                           family,
-                          members),
+                          members,
+                          authenticatedMember),
                       child: Card(
                         child: Padding(
                           padding: const EdgeInsets.all(14),
@@ -200,22 +285,18 @@ class _UpcomingDistributionPageState
                               height: 44,
                               decoration: BoxDecoration(
                                   color: const Color(0xfff0fdfa),
-                                  borderRadius:
-                                      BorderRadius.circular(13)),
-                              child: const Icon(
-                                  Icons.volunteer_activism,
+                                  borderRadius: BorderRadius.circular(13)),
+                              child: const Icon(Icons.volunteer_activism,
                                   color: Color(0xff0d9488)),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    d['resource']?['name']
-                                            ?.toString() ??
-                                        'Relief not assigned',
+                                    distributionReliefName(
+                                        Map<String, dynamic>.from(d)),
                                     style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700),
@@ -232,31 +313,45 @@ class _UpcomingDistributionPageState
                                         fontSize: 11, color: _muted),
                                   ),
                                   Builder(builder: (context) {
-                                    final isExcluded = d['excluded'] == true || d['excluded']?.toString() == '1';
-                                    final reason = d['exclusion_reason']?.toString() ?? '';
+                                    final isExcluded = d['excluded'] == true ||
+                                        d['excluded']?.toString() == '1';
+                                    final reason =
+                                        d['exclusion_reason']?.toString() ?? '';
                                     return Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           margin: const EdgeInsets.only(top: 4),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: (isExcluded ? const Color(0xffdc2626) : const Color(0xfff59e0b)).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: (isExcluded
+                                                    ? const Color(0xffdc2626)
+                                                    : const Color(0xfff59e0b))
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Text(
                                             isExcluded ? 'Excluded' : 'Pending',
                                             style: TextStyle(
                                               fontSize: 11,
-                                              color: isExcluded ? const Color(0xffdc2626) : const Color(0xfff59e0b),
+                                              color: isExcluded
+                                                  ? const Color(0xffdc2626)
+                                                  : const Color(0xfff59e0b),
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ),
                                         if (isExcluded && reason.isNotEmpty)
                                           Padding(
-                                            padding: const EdgeInsets.only(top: 3),
-                                            child: Text(reason, style: const TextStyle(fontSize: 11, color: Color(0xff94a3b8))),
+                                            padding:
+                                                const EdgeInsets.only(top: 3),
+                                            child: Text(reason,
+                                                style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: Color(0xff94a3b8))),
                                           ),
                                       ],
                                     );
@@ -279,7 +374,6 @@ class _UpcomingDistributionPageState
   }
 }
 
-
 // â”€â”€â”€ Family Detail Row helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FamilyDetailRow extends StatelessWidget {
@@ -300,11 +394,8 @@ class _FamilyDetailRow extends StatelessWidget {
         Expanded(
             child: Text(value!,
                 style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _ink))),
+                    fontSize: 13, fontWeight: FontWeight.w600, color: _ink))),
       ]),
     );
   }
 }
-

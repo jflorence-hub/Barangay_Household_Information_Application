@@ -23,8 +23,8 @@ class _FamilyHomeState extends State<FamilyHome> {
               child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Log out',
-                  style: TextStyle(color: Colors.red))),
+              child:
+                  const Text('Log out', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -47,9 +47,8 @@ class _FamilyHomeState extends State<FamilyHome> {
       final list = (data['announcements'] as List? ?? []);
       if (list.isEmpty) return;
       // Find announcements newer than lastSeen
-      final newOnes = list
-          .where((a) => (a['id'] as int? ?? 0) > lastSeen)
-          .toList();
+      final newOnes =
+          list.where((a) => (a['id'] as int? ?? 0) > lastSeen).toList();
       if (newOnes.isEmpty || !mounted) return;
       // Update last_announcement_id to max id seen
       final maxId = list
@@ -105,14 +104,14 @@ class _FamilyHomeState extends State<FamilyHome> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                  color: _blue,
-                  borderRadius: BorderRadius.circular(11)),
+                  color: _blue, borderRadius: BorderRadius.circular(11)),
               child: const Icon(Icons.house_rounded,
                   color: Colors.white, size: 22),
             ),
             const SizedBox(width: 10),
-            const Text('My Home',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(tab == 4 ? 'My QR Code' : 'My Home',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ]),
           actions: [
             IconButton(
@@ -126,6 +125,7 @@ class _FamilyHomeState extends State<FamilyHome> {
         const UpcomingDistributionPage(),
         ProfilePage(onLogout: _logout),
         const MessagesPage(),
+        const FamilyQrPage(),
       ]),
       bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
@@ -133,12 +133,12 @@ class _FamilyHomeState extends State<FamilyHome> {
           destinations: const [
             NavigationDestination(
                 icon: Icon(Icons.history), label: 'My Records'),
-            NavigationDestination(
-                icon: Icon(Icons.event), label: 'Schedule'),
+            NavigationDestination(icon: Icon(Icons.event), label: 'Schedule'),
             NavigationDestination(
                 icon: Icon(Icons.person_outline), label: 'Profile'),
             NavigationDestination(
                 icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
+            NavigationDestination(
+                icon: Icon(Icons.qr_code_2_rounded), label: 'My QR'),
           ]));
 }
-

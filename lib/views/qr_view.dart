@@ -18,12 +18,25 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final result = await Api.req('GET', '/family/me');
-      if (mounted) setState(() { _family = result['family'] as Map<String, dynamic>?; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _family = result['family'] as Map<String, dynamic>?;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -33,18 +46,13 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
     final familyName = _family?['head_name']?.toString() ?? 'My Family';
     final familyId = _family?['family_id']?.toString() ?? '';
 
-    return Scaffold(
-      backgroundColor: const Color(0xfff8fafc),
-      appBar: AppBar(
-        backgroundColor: const Color(0xfff8fafc),
-        elevation: 0,
-        title: const Text('My QR Code', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-        centerTitle: false,
-      ),
-      body: _loading
+    return ColoredBox(
+      color: const Color(0xfff8fafc),
+      child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.error_outline, color: Colors.red, size: 40),
                   const SizedBox(height: 12),
                   Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -52,7 +60,9 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
                   FilledButton(onPressed: _load, child: const Text('Retry')),
                 ]))
               : qrCode.isEmpty
-                  ? const Center(child: Text('QR code not available. Contact your administrator.'))
+                  ? const Center(
+                      child: Text(
+                          'QR code not available. Contact your administrator.'))
                   : SafeArea(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(24),
@@ -64,7 +74,13 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
-                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 4))],
+                                boxShadow: [
+                                  BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 4))
+                                ],
                               ),
                               child: QrImageView(
                                 data: qrCode,
@@ -73,12 +89,46 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
                                 backgroundColor: Colors.white,
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border:
+                                    Border.all(color: const Color(0xffe2e8f0)),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    'Family QR code',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Color(0xff64748b)),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SelectableText(
+                                    qrCode,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xff0f172a),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 24),
-                            Text(familyName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                            Text(familyName,
+                                style: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.w800)),
                             const SizedBox(height: 4),
-                            Text(familyId, style: const TextStyle(fontSize: 14, color: Color(0xff64748b))),
-                            const SizedBox(height: 8),
-                            SelectableText(qrCode, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Color(0xff94a3b8))),
+                            Text(familyId,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Color(0xff64748b))),
                             const SizedBox(height: 24),
                             Container(
                               padding: const EdgeInsets.all(14),
@@ -87,11 +137,14 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Row(children: [
-                                Icon(Icons.info_outline, color: Color(0xff2563eb), size: 18),
+                                Icon(Icons.info_outline,
+                                    color: Color(0xff2563eb), size: 18),
                                 SizedBox(width: 10),
-                                Expanded(child: Text(
+                                Expanded(
+                                    child: Text(
                                   'Show this QR code to the distribution staff when collecting your relief goods.',
-                                  style: TextStyle(fontSize: 13, color: Color(0xff1e40af)),
+                                  style: TextStyle(
+                                      fontSize: 13, color: Color(0xff1e40af)),
                                 )),
                               ]),
                             ),

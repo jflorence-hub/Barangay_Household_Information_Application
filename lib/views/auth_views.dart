@@ -176,7 +176,7 @@ class _LoginPageState extends State<LoginPage> {
       _error = null;
     });
     try {
-      await AuthController().login(
+      final session = await AuthController().login(
         identifier: _phone.text.trim(),
         pin: _pw.text,
       );
@@ -187,10 +187,15 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.remove('family_remember');
       }
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FamilyHome()),
-        );
+        // If the account was bulk-imported, prompt a PIN change before entering the app
+        if (session.mustChangePin) {
+          _showChangePinDialog(currentPin: _pw.text);
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const FamilyHome()),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -199,6 +204,131 @@ class _LoginPageState extends State<LoginPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showChangePinDialog({required String currentPin}) {
+    final newPinCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    String? error;
+    bool busy = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Change Your PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'You logged in with a temporary PIN. Please set a new PIN to secure your account.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newPinCtrl,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'New PIN (4–6 digits)',
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmCtrl,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm new PIN',
+                    counterText: '',
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(error!,
+                      style: const TextStyle(fontSize: 12, color: Colors.red)),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: busy
+                    ? null
+                    : () {
+                        Navigator.of(dialogContext).pop();
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const FamilyHome()),
+                        );
+                      },
+                child: const Text('Skip'),
+              ),
+              FilledButton(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final newPin = newPinCtrl.text.trim();
+                        final confirm = confirmCtrl.text.trim();
+                        if (newPin.length < 4 ||
+                            newPin.length > 6 ||
+                            !RegExp(r'^[0-9]+$').hasMatch(newPin)) {
+                          setDialogState(
+                              () => error = 'PIN must be 4–6 digits.');
+                          return;
+                        }
+                        if (newPin != confirm) {
+                          setDialogState(() => error = 'PINs do not match.');
+                          return;
+                        }
+                        if (newPin == currentPin) {
+                          setDialogState(() => error =
+                              'New PIN must be different from the temporary PIN.');
+                          return;
+                        }
+                        setDialogState(() {
+                          busy = true;
+                          error = null;
+                        });
+                        try {
+                          await AuthController().changePin(
+                            currentPin: currentPin,
+                            newPin: newPin,
+                          );
+                          if (context.mounted) {
+                            Navigator.of(dialogContext).pop();
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const FamilyHome()),
+                            );
+                          }
+                        } catch (e) {
+                          setDialogState(() {
+                            error =
+                                e.toString().replaceFirst('Exception: ', '');
+                            busy = false;
+                          });
+                        }
+                      },
+                child: busy
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text('Change PIN'),
+              ),
+            ],
+          );
+        });
+      },
+    );
   }
 
   @override
@@ -254,21 +384,16 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            const _FieldLabel('Family PIN'),
+                            const _FieldLabel('Family PIN / Member Password'),
                             const SizedBox(height: 6),
                             TextField(
                               controller: _pw,
                               obscureText: _hidePIN,
-                              keyboardType: TextInputType.number,
-                              maxLength: 6,
-                              buildCounter: (_,
-                                      {required currentLength,
-                                      required isFocused,
-                                      maxLength}) =>
-                                  null,
+                              keyboardType: TextInputType.visiblePassword,
                               onSubmitted: (_) => _busy ? null : _login(),
                               decoration: InputDecoration(
-                                hintText: 'Enter your 6-digit PIN',
+                                hintText:
+                                    'Enter your family PIN or member password',
                                 suffixIcon: IconButton(
                                   onPressed: () =>
                                       setState(() => _hidePIN = !_hidePIN),
@@ -400,6 +525,7 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final formKey = GlobalKey<FormState>();
+  final memberFormKey = GlobalKey<FormState>();
   final head = TextEditingController();
   final email = TextEditingController();
   final phone = TextEditingController();
@@ -409,6 +535,12 @@ class _RegisterPageState extends State<RegisterPage> {
   ];
   final pw = TextEditingController();
   final confirm = TextEditingController();
+  final memberName = TextEditingController();
+  final memberHead = TextEditingController();
+  final memberEmail = TextEditingController();
+  final memberPhone = TextEditingController();
+  final memberPassword = TextEditingController();
+  bool registerAsMember = false;
   List<dynamic> puroks = [], locations = [];
   int? purok, location;
   String? error;
@@ -443,6 +575,11 @@ class _RegisterPageState extends State<RegisterPage> {
     }
     pw.dispose();
     confirm.dispose();
+    memberName.dispose();
+    memberHead.dispose();
+    memberEmail.dispose();
+    memberPhone.dispose();
+    memberPassword.dispose();
     super.dispose();
   }
 
@@ -465,6 +602,7 @@ class _RegisterPageState extends State<RegisterPage> {
           error = 'Please select your assigned purok and barangay/location.');
       return;
     }
+
     // Validate member names are not empty
     for (int i = 0; i < _memberControllers.length; i++) {
       if (_memberControllers[i].text.trim().isEmpty) {
@@ -517,6 +655,110 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  Future<void> submitMember() async {
+    if (!memberFormKey.currentState!.validate()) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await Api.req(
+        'POST',
+        '/family/register-member',
+        auth: false,
+        body: {
+          'name': memberName.text.trim(),
+          'head_name': memberHead.text.trim(),
+          'email': memberEmail.text.trim(),
+          'phone': memberPhone.text.trim(),
+          'password': memberPassword.text,
+        },
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Member account created. Sign in with your email or phone and password.'),
+          ),
+        );
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (_) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => busy = false);
+      }
+    }
+  }
+
+  Widget buildMemberRegistrationForm() => Form(
+        key: memberFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Create an account for a person already listed in the family records.',
+              style: TextStyle(color: _muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            field(memberName, 'Name'),
+            field(memberHead, 'Head of the Family'),
+            field(
+              memberEmail,
+              'Email',
+              keyboard: TextInputType.emailAddress,
+              validator: (value) {
+                final text = value?.trim() ?? '';
+                if (text.isEmpty) return 'Email is required';
+                if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text)) {
+                  return 'Enter a valid email address';
+                }
+                return null;
+              },
+            ),
+            field(
+              memberPhone,
+              'Phone (09XXXXXXXXX)',
+              keyboard: TextInputType.phone,
+              maxLength: 11,
+              validator: (value) =>
+                  value == null || !RegExp(r'^09\d{9}$').hasMatch(value.trim())
+                      ? 'Phone must be 11 digits starting with 09'
+                      : null,
+            ),
+            field(
+              memberPassword,
+              'Password (at least 8 characters)',
+              secret: true,
+              validator: (value) => value == null || value.length < 8
+                  ? 'Password must be at least 8 characters'
+                  : null,
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 4),
+              Text(error!, style: const TextStyle(color: Colors.red)),
+            ],
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: busy ? null : submitMember,
+              child: Text(busy ? 'Registering…' : 'Register as Member'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Back to login'),
+            ),
+          ],
+        ),
+      );
+
   Widget field(TextEditingController c, String label,
           {bool secret = false,
           TextInputType? keyboard,
@@ -560,286 +802,335 @@ class _RegisterPageState extends State<RegisterPage> {
                   children: [
                     const Center(child: _FamilyLogo()),
                     const SizedBox(height: 28),
-                    const Text(
-                      'Register Family',
+                    Text(
+                      registerAsMember
+                          ? 'Register as Member'
+                          : 'Register Family',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                           color: _ink),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Create your household account',
+                    Text(
+                      registerAsMember
+                          ? 'Create an account for a registered household member'
+                          : 'Create your household account',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: _muted, fontSize: 14),
+                      style: const TextStyle(color: _muted, fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(
+                          value: false,
+                          label: Text('Family Registration'),
+                          icon: Icon(Icons.family_restroom),
+                        ),
+                        ButtonSegment(
+                          value: true,
+                          label: Text('Register as Member'),
+                          icon: Icon(Icons.person_add_alt_1),
+                        ),
+                      ],
+                      selected: {registerAsMember},
+                      onSelectionChanged: (selection) {
+                        setState(() {
+                          registerAsMember = selection.first;
+                          error = null;
+                        });
+                      },
                     ),
                     const SizedBox(height: 24),
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
-                        child: Form(
-                          key: formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const _FieldLabel('Head of Family'),
-                              const SizedBox(height: 6),
-                              TextFormField(
-                                controller: head,
-                                validator: requiredText,
-                                decoration: const InputDecoration(
-                                    hintText: 'Enter head of family name'),
-                              ),
-                              const SizedBox(height: 14),
-                              const _FieldLabel('Phone Number (09XXXXXXXXX)'),
-                              const SizedBox(height: 6),
-                              TextFormField(
-                                controller: phone,
-                                keyboardType: TextInputType.phone,
-                                maxLength: 11,
-                                buildCounter: (_,
-                                        {required currentLength,
-                                        required isFocused,
-                                        maxLength}) =>
-                                    null,
-                                validator: (v) {
-                                  if (v == null || v.trim().isEmpty) {
-                                    return 'Phone number is required';
-                                  }
-                                  if (!RegExp(r'^09\d{9}$')
-                                      .hasMatch(v.trim())) {
-                                    return 'Phone must be 11 digits starting with 09';
-                                  }
-                                  return null;
-                                },
-                                decoration: const InputDecoration(
-                                    hintText: '09XXXXXXXXX'),
-                              ),
-                              const SizedBox(height: 14),
-                              const _FieldLabel('Email (for PIN recovery)'),
-                              const SizedBox(height: 6),
-                              TextFormField(
-                                controller: email,
-                                keyboardType: TextInputType.emailAddress,
-                                validator: (v) {
-                                  if (v == null || v.trim().isEmpty) {
-                                    return 'Email is required';
-                                  }
-                                  if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                                      .hasMatch(v.trim())) {
-                                    return 'Enter a valid email address';
-                                  }
-                                  return null;
-                                },
-                                decoration: const InputDecoration(
-                                    hintText: 'your@email.com'),
-                              ),
-                              const SizedBox(height: 14),
-                              // Info box above members
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xffeff6ff),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: const Color(0xffbfdbfe)),
-                                ),
-                                child: const Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        child: registerAsMember
+                            ? buildMemberRegistrationForm()
+                            : Form(
+                                key: formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
-                                    Icon(Icons.info_outline,
-                                        color: _blue, size: 16),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'List all family members to prevent duplicate registrations. '
-                                        'If a name is already registered, the system will reject the submission.',
-                                        style: TextStyle(
-                                            fontSize: 12, color: _blue),
+                                    const _FieldLabel('Head of Family'),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: head,
+                                      validator: requiredText,
+                                      decoration: const InputDecoration(
+                                          hintText:
+                                              'Enter head of family name'),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const _FieldLabel(
+                                        'Phone Number (09XXXXXXXXX)'),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: phone,
+                                      keyboardType: TextInputType.phone,
+                                      maxLength: 11,
+                                      buildCounter: (_,
+                                              {required currentLength,
+                                              required isFocused,
+                                              maxLength}) =>
+                                          null,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) {
+                                          return 'Phone number is required';
+                                        }
+                                        if (!RegExp(r'^09\d{9}$')
+                                            .hasMatch(v.trim())) {
+                                          return 'Phone must be 11 digits starting with 09';
+                                        }
+                                        return null;
+                                      },
+                                      decoration: const InputDecoration(
+                                          hintText: '09XXXXXXXXX'),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const _FieldLabel(
+                                        'Email (for PIN recovery)'),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: email,
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) {
+                                          return 'Email is required';
+                                        }
+                                        if (!RegExp(
+                                                r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                            .hasMatch(v.trim())) {
+                                          return 'Enter a valid email address';
+                                        }
+                                        return null;
+                                      },
+                                      decoration: const InputDecoration(
+                                          hintText: 'your@email.com'),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    // Info box above members
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xffeff6ff),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                            color: const Color(0xffbfdbfe)),
+                                      ),
+                                      child: const Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Icon(Icons.info_outline,
+                                              color: _blue, size: 16),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'List all family members to prevent duplicate registrations. '
+                                              'If a name is already registered, the system will reject the submission.',
+                                              style: TextStyle(
+                                                  fontSize: 12, color: _blue),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
+                                    const SizedBox(height: 14),
+                                    // Dynamic Household Members section
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Household Members (${_memberControllers.length})',
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: _addMember,
+                                          icon: const Icon(Icons.add, size: 16),
+                                          label: const Text('Add member'),
+                                          style: TextButton.styleFrom(
+                                              visualDensity:
+                                                  VisualDensity.compact),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    ...List.generate(_memberControllers.length,
+                                        (i) {
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 10),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 28,
+                                              child: Text(
+                                                '${i + 1}.',
+                                                textAlign: TextAlign.right,
+                                                style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: TextField(
+                                                controller:
+                                                    _memberControllers[i],
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                      'Member ${i + 1} full name',
+                                                ),
+                                              ),
+                                            ),
+                                            if (_memberControllers.length >
+                                                1) ...[
+                                              const SizedBox(width: 4),
+                                              IconButton(
+                                                icon: const Icon(Icons.close,
+                                                    size: 18,
+                                                    color: Colors.red),
+                                                onPressed: () =>
+                                                    _removeMember(i),
+                                                tooltip: 'Remove member',
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                    const SizedBox(height: 4),
+                                    const _FieldLabel('Barangay / Location'),
+                                    const SizedBox(height: 6),
+                                    DropdownButtonFormField<int>(
+                                      initialValue: location,
+                                      decoration: const InputDecoration(
+                                          hintText: 'Select barangay/location'),
+                                      validator: (v) => v == null
+                                          ? 'Please select a barangay/location'
+                                          : null,
+                                      items: locations
+                                          .map((x) => DropdownMenuItem<int>(
+                                                value: int.tryParse(
+                                                    x['id'].toString()),
+                                                child:
+                                                    Text(x['name'].toString()),
+                                              ))
+                                          .toList(),
+                                      onChanged: (v) => setState(() {
+                                        location = v;
+                                        purok = null;
+                                      }),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const _FieldLabel('Assigned Purok'),
+                                    const SizedBox(height: 6),
+                                    DropdownButtonFormField<int>(
+                                      key: ValueKey('purok-$location'),
+                                      initialValue: purok,
+                                      decoration: InputDecoration(
+                                        hintText: location == null
+                                            ? 'Select barangay first'
+                                            : 'Select purok',
+                                      ),
+                                      validator: (v) => v == null
+                                          ? 'Please select a purok'
+                                          : null,
+                                      items: puroks
+                                          .where((x) =>
+                                              int.tryParse(x['location_id']
+                                                  .toString()) ==
+                                              location)
+                                          .map((x) => DropdownMenuItem<int>(
+                                                value: int.tryParse(
+                                                    x['id'].toString()),
+                                                child:
+                                                    Text(x['name'].toString()),
+                                              ))
+                                          .toList(),
+                                      onChanged: location == null
+                                          ? null
+                                          : (v) => setState(() => purok = v),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const _FieldLabel('Family PIN (6 digits)'),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: pw,
+                                      obscureText: true,
+                                      keyboardType: TextInputType.number,
+                                      maxLength: 6,
+                                      buildCounter: (_,
+                                              {required currentLength,
+                                              required isFocused,
+                                              maxLength}) =>
+                                          null,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) {
+                                          return 'PIN is required';
+                                        }
+                                        if (!RegExp(r'^\d{6}$')
+                                            .hasMatch(v.trim())) {
+                                          return 'PIN must be exactly 6 digits';
+                                        }
+                                        return null;
+                                      },
+                                      decoration: const InputDecoration(
+                                          hintText: 'Enter 6-digit PIN'),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const _FieldLabel(
+                                        'Confirm Family PIN (6-digit PIN)'),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: confirm,
+                                      obscureText: true,
+                                      keyboardType: TextInputType.number,
+                                      maxLength: 6,
+                                      buildCounter: (_,
+                                              {required currentLength,
+                                              required isFocused,
+                                              maxLength}) =>
+                                          null,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Please confirm your PIN';
+                                        }
+                                        if (v != pw.text) {
+                                          return 'PINs do not match';
+                                        }
+                                        return null;
+                                      },
+                                      decoration: const InputDecoration(
+                                          hintText: 'Confirm 6-digit PIN'),
+                                    ),
+                                    if (error != null) ...[
+                                      const SizedBox(height: 10),
+                                      Text(error!,
+                                          style: const TextStyle(
+                                              color: Colors.red)),
+                                    ],
+                                    const SizedBox(height: 14),
+                                    FilledButton(
+                                        onPressed: busy ? null : submit,
+                                        child: Text(busy
+                                            ? 'Registering…'
+                                            : 'Register')),
+                                    const SizedBox(height: 8),
+                                    TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Back to login')),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 14),
-                              // Dynamic Household Members section
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Household Members (${_memberControllers.length})',
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: _addMember,
-                                    icon: const Icon(Icons.add, size: 16),
-                                    label: const Text('Add member'),
-                                    style: TextButton.styleFrom(
-                                        visualDensity: VisualDensity.compact),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              ...List.generate(_memberControllers.length, (i) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 28,
-                                        child: Text(
-                                          '${i + 1}.',
-                                          textAlign: TextAlign.right,
-                                          style: const TextStyle(
-                                              fontSize: 13, color: Colors.grey),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _memberControllers[i],
-                                          decoration: InputDecoration(
-                                            hintText:
-                                                'Member ${i + 1} full name',
-                                          ),
-                                        ),
-                                      ),
-                                      if (_memberControllers.length > 1) ...[
-                                        const SizedBox(width: 4),
-                                        IconButton(
-                                          icon: const Icon(Icons.close,
-                                              size: 18, color: Colors.red),
-                                          onPressed: () => _removeMember(i),
-                                          tooltip: 'Remove member',
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                );
-                              }),
-                              const SizedBox(height: 4),
-                              const _FieldLabel('Barangay / Location'),
-                              const SizedBox(height: 6),
-                              DropdownButtonFormField<int>(
-                                initialValue: location,
-                                decoration: const InputDecoration(
-                                    hintText: 'Select barangay/location'),
-                                validator: (v) => v == null
-                                    ? 'Please select a barangay/location'
-                                    : null,
-                                items: locations
-                                    .map((x) => DropdownMenuItem<int>(
-                                          value:
-                                              int.tryParse(x['id'].toString()),
-                                          child: Text(x['name'].toString()),
-                                        ))
-                                    .toList(),
-                                onChanged: (v) => setState(() {
-                                  location = v;
-                                  purok = null;
-                                }),
-                              ),
-                              const SizedBox(height: 14),
-                              const _FieldLabel('Assigned Purok'),
-                              const SizedBox(height: 6),
-                              DropdownButtonFormField<int>(
-                                key: ValueKey('purok-$location'),
-                                initialValue: purok,
-                                decoration: InputDecoration(
-                                  hintText: location == null
-                                      ? 'Select barangay first'
-                                      : 'Select purok',
-                                ),
-                                validator: (v) =>
-                                    v == null ? 'Please select a purok' : null,
-                                items: puroks
-                                    .where((x) =>
-                                        int.tryParse(
-                                            x['location_id'].toString()) ==
-                                        location)
-                                    .map((x) => DropdownMenuItem<int>(
-                                          value:
-                                              int.tryParse(x['id'].toString()),
-                                          child: Text(x['name'].toString()),
-                                        ))
-                                    .toList(),
-                                onChanged: location == null
-                                    ? null
-                                    : (v) => setState(() => purok = v),
-                              ),
-                              const SizedBox(height: 14),
-                              const _FieldLabel('Family PIN (6 digits)'),
-                              const SizedBox(height: 6),
-                              TextFormField(
-                                controller: pw,
-                                obscureText: true,
-                                keyboardType: TextInputType.number,
-                                maxLength: 6,
-                                buildCounter: (_,
-                                        {required currentLength,
-                                        required isFocused,
-                                        maxLength}) =>
-                                    null,
-                                validator: (v) {
-                                  if (v == null || v.trim().isEmpty) {
-                                    return 'PIN is required';
-                                  }
-                                  if (!RegExp(r'^\d{6}$').hasMatch(v.trim())) {
-                                    return 'PIN must be exactly 6 digits';
-                                  }
-                                  return null;
-                                },
-                                decoration: const InputDecoration(
-                                    hintText: 'Enter 6-digit PIN'),
-                              ),
-                              const SizedBox(height: 14),
-                              const _FieldLabel(
-                                  'Confirm Family PIN (6-digit PIN)'),
-                              const SizedBox(height: 6),
-                              TextFormField(
-                                controller: confirm,
-                                obscureText: true,
-                                keyboardType: TextInputType.number,
-                                maxLength: 6,
-                                buildCounter: (_,
-                                        {required currentLength,
-                                        required isFocused,
-                                        maxLength}) =>
-                                    null,
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Please confirm your PIN';
-                                  }
-                                  if (v != pw.text) {
-                                    return 'PINs do not match';
-                                  }
-                                  return null;
-                                },
-                                decoration: const InputDecoration(
-                                    hintText: 'Confirm 6-digit PIN'),
-                              ),
-                              if (error != null) ...[
-                                const SizedBox(height: 10),
-                                Text(error!,
-                                    style: const TextStyle(color: Colors.red)),
-                              ],
-                              const SizedBox(height: 14),
-                              FilledButton(
-                                  onPressed: busy ? null : submit,
-                                  child:
-                                      Text(busy ? 'Registering…' : 'Register')),
-                              const SizedBox(height: 8),
-                              TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Back to login')),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   ],

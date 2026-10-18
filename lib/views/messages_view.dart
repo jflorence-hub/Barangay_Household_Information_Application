@@ -12,6 +12,7 @@ class _MessagesPageState extends State<MessagesPage> {
   final _scrollCtrl = ScrollController();
   Timer? _timer;
   List<Map<String, dynamic>> _messages = [];
+  Map<String, dynamic>? _recipient;
   bool _sending = false;
   String? error;
 
@@ -19,8 +20,8 @@ class _MessagesPageState extends State<MessagesPage> {
   void initState() {
     super.initState();
     _loadMessages();
-    _timer = Timer.periodic(
-        const Duration(seconds: 10), (_) => _loadMessages());
+    _timer =
+        Timer.periodic(const Duration(seconds: 10), (_) => _loadMessages());
   }
 
   @override
@@ -36,19 +37,24 @@ class _MessagesPageState extends State<MessagesPage> {
       final result = await Api.req('GET', '/family/messages');
       final list = result['messages'] as List? ?? [];
       if (mounted) {
-        setState(() =>
-            _messages = list.map((e) => e as Map<String, dynamic>).toList());
+        setState(() {
+          _messages = list.map((e) => e as Map<String, dynamic>).toList();
+          _recipient = result['recipient'] as Map<String, dynamic>?;
+          error = null;
+        });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollCtrl.hasClients) {
             _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
           }
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    }
   }
 
   Future<void> send() async {
-    if (text.text.trim().isEmpty || _sending) return;
+    if (text.text.trim().isEmpty || _sending || _recipient == null) return;
     setState(() => _sending = true);
     try {
       await Api.req('POST', '/family/messages',
@@ -66,8 +72,7 @@ class _MessagesPageState extends State<MessagesPage> {
     if (iso == null) return '';
     try {
       final dt = DateTime.parse(iso).toLocal();
-      final h =
-          dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
       final m = dt.minute.toString().padLeft(2, '0');
       final ampm = dt.hour >= 12 ? 'PM' : 'AM';
       return '$h:$m $ampm';
@@ -87,8 +92,18 @@ class _MessagesPageState extends State<MessagesPage> {
       if (day == today) return 'Today';
       if (day == yesterday) return 'Yesterday';
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
       ];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
@@ -126,20 +141,27 @@ class _MessagesPageState extends State<MessagesPage> {
           ),
           child: Row(children: [
             Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                   color: const Color(0xffdbeafe),
                   borderRadius: BorderRadius.circular(18)),
               child: const Icon(Icons.groups_outlined, color: _blue, size: 20),
             ),
             const SizedBox(width: 10),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Administrator',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                Text('Barangay Household Support',
-                    style: TextStyle(color: _muted, fontSize: 11)),
+                Text(
+                  _recipient?['name']?.toString() ?? 'No staff assigned',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                    _recipient == null
+                        ? 'Contact the barangay office for assistance'
+                        : 'Staff assigned to your Purok',
+                    style: const TextStyle(color: _muted, fontSize: 11)),
               ],
             ),
           ]),
@@ -147,21 +169,25 @@ class _MessagesPageState extends State<MessagesPage> {
         // Messages list
         Expanded(
           child: grouped.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.chat_bubble_outline,
+                      const Icon(Icons.chat_bubble_outline,
                           size: 56, color: Color(0xffcbd5e1)),
-                      SizedBox(height: 12),
-                      Text('No messages yet. Write to admin below.',
-                          style: TextStyle(color: _muted)),
+                      const SizedBox(height: 12),
+                      Text(
+                          _recipient == null
+                              ? 'No active staff member is assigned to your Purok.'
+                              : 'No messages yet. Write to your assigned staff below.',
+                          style: const TextStyle(color: _muted)),
                     ],
                   ),
                 )
               : ListView.builder(
                   controller: _scrollCtrl,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   itemCount: grouped.length,
                   itemBuilder: (context, index) {
                     final item = grouped[index];
@@ -172,43 +198,58 @@ class _MessagesPageState extends State<MessagesPage> {
                           const Expanded(child: Divider()),
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                                 color: const Color(0xfff1f5f9),
                                 borderRadius: BorderRadius.circular(12)),
                             child: Text(item['label']?.toString() ?? '',
-                                style: const TextStyle(fontSize: 11, color: _muted)),
+                                style: const TextStyle(
+                                    fontSize: 11, color: _muted)),
                           ),
                           const Expanded(child: Divider()),
                         ]),
                       );
                     }
                     final m = item['data'] as Map<String, dynamic>? ?? {};
-                    final isSelf = m['sender_type'] == 'family' || m['sender_type'] == 'user';
+                    final isSelf = m['sender_type'] == 'family' ||
+                        m['sender_type'] == 'user';
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Column(
-                        crossAxisAlignment: isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        crossAxisAlignment: isSelf
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: isSelf ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            mainAxisAlignment: isSelf
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
                             children: [
                               ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: screenWidth * 0.72),
+                                constraints: BoxConstraints(
+                                    maxWidth: screenWidth * 0.72),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: isSelf ? _blue : Colors.white,
                                     borderRadius: BorderRadius.only(
                                       topLeft: const Radius.circular(18),
                                       topRight: const Radius.circular(18),
-                                      bottomLeft: Radius.circular(isSelf ? 18 : 4),
-                                      bottomRight: Radius.circular(isSelf ? 4 : 18),
+                                      bottomLeft:
+                                          Radius.circular(isSelf ? 18 : 4),
+                                      bottomRight:
+                                          Radius.circular(isSelf ? 4 : 18),
                                     ),
-                                    border: isSelf ? null : Border.all(color: const Color(0xffe2e8f0)),
+                                    border: isSelf
+                                        ? null
+                                        : Border.all(
+                                            color: const Color(0xffe2e8f0)),
                                     boxShadow: [
                                       BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.04),
+                                          color: Colors.black
+                                              .withValues(alpha: 0.04),
                                           blurRadius: 4,
                                           offset: const Offset(0, 2)),
                                     ],
@@ -224,10 +265,12 @@ class _MessagesPageState extends State<MessagesPage> {
                             ],
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
+                            padding: const EdgeInsets.only(
+                                top: 2, left: 4, right: 4),
                             child: Text(
                               _formatTime(m['created_at']?.toString()),
-                              style: const TextStyle(fontSize: 10, color: _muted),
+                              style:
+                                  const TextStyle(fontSize: 10, color: _muted),
                             ),
                           ),
                         ],
@@ -239,7 +282,8 @@ class _MessagesPageState extends State<MessagesPage> {
         if (error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+            child: Text(error!,
+                style: const TextStyle(color: Colors.red, fontSize: 12)),
           ),
         // Compose area
         Container(
@@ -252,19 +296,25 @@ class _MessagesPageState extends State<MessagesPage> {
             Expanded(
               child: TextField(
                 controller: text,
+                enabled: _recipient != null && !_sending,
                 maxLines: null,
-                decoration: const InputDecoration(
-                    hintText: 'Write a message to admin…',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+                decoration: InputDecoration(
+                    hintText: _recipient == null
+                        ? 'Messaging is unavailable'
+                        : 'Write to your assigned staff…',
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10)),
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
-              onPressed: _sending ? null : send,
+              onPressed: _sending || _recipient == null ? null : send,
               icon: _sending
                   ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _blue))
                   : const Icon(Icons.send_rounded, color: _blue),
               style: IconButton.styleFrom(
                   backgroundColor: const Color(0xffeff6ff),
@@ -279,4 +329,3 @@ class _MessagesPageState extends State<MessagesPage> {
 }
 
 // --- Family QR Code Page ------------------------------------------------------
-
