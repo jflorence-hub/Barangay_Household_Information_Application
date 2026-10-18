@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class Api {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://ambitious-flaring-jelly.ngrok-free.dev/api');
+    defaultValue: 'http://10.0.2.2:8000/api');
 
   static Future<String?> get token async =>
       (await SharedPreferences.getInstance()).getString('family_token');
