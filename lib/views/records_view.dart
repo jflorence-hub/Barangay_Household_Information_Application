@@ -104,7 +104,6 @@ class _RecordsPageState extends State<RecordsPage> {
                     fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
             const SizedBox(height: 16),
             _FamilyDetailRow('Head of Family', family['head_name']?.toString()),
-            _FamilyDetailRow('Family Head', family['head_name']?.toString()),
             _FamilyDetailRow(
                 'Claimed By',
                 d['claimed_by']?.toString().isNotEmpty == true

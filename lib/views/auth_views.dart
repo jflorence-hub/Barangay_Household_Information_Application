@@ -635,7 +635,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Registration successful! Sign in with your email or phone number and PIN.',
+              'Registration submitted for review. We will email you when your family account is approved.',
             ),
           ),
         );
