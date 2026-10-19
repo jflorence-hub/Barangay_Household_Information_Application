@@ -134,35 +134,58 @@ class _MessagesPageState extends State<MessagesPage> {
       children: [
         // Header
         Container(
-          color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
+            color: Colors.white,
             border: Border(bottom: BorderSide(color: Color(0xffe8edf5))),
           ),
           child: Row(children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                   color: const Color(0xffdbeafe),
-                  borderRadius: BorderRadius.circular(18)),
-              child: const Icon(Icons.groups_outlined, color: _blue, size: 20),
+                  borderRadius: BorderRadius.circular(15)),
+              child: const Icon(Icons.support_agent_rounded,
+                  color: _blue, size: 23),
             ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _recipient?['name']?.toString() ?? 'No staff assigned',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-                Text(
-                    _recipient == null
-                        ? 'Contact the barangay office for assistance'
-                        : 'Staff assigned to your Purok',
-                    style: const TextStyle(color: _muted, fontSize: 11)),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _recipient?['name']?.toString() ?? 'No staff assigned',
+                    softWrap: true,
+                    style: const TextStyle(
+                        fontSize: 14, color: _ink, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: _recipient == null
+                              ? const Color(0xfff59e0b)
+                              : const Color(0xff059669),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _recipient == null
+                              ? 'Ask barangay office'
+                              : 'Assigned staff',
+                          style: const TextStyle(color: _muted, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ]),
         ),

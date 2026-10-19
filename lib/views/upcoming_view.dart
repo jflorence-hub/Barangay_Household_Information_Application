@@ -79,7 +79,7 @@ class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirm relief received?'),
+        title: const Text('Confirm receipt?'),
         content: Text(
           'Confirm that $memberName received this relief. This will record the receipt and update inventory.',
         ),
@@ -161,6 +161,9 @@ class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
             _FamilyDetailRow('Purok', family['purok']?.toString()),
             _FamilyDetailRow('Household Members',
                 '${family['household_member'] ?? members.length} member(s)'),
+            if (d['schedule'] is Map && d['schedule']['disaster_event'] is Map)
+              _FamilyDetailRow('Disaster Event',
+                  d['schedule']['disaster_event']['name']?.toString()),
             _FamilyDetailRow('Relief', distributionReliefName(d)),
             _FamilyDetailRow('Quantity', d['quantity']?.toString()),
             const _FamilyDetailRow('Scan Status', 'Pending'),
@@ -184,7 +187,7 @@ class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
                   authenticatedMember['name']?.toString() ?? 'Member',
                 ),
                 icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Confirm relief received'),
+                label: const Text('Confirm receipt'),
               ),
             ] else if (authenticatedMember != null &&
                 d['status']?.toString() == 'pending' &&
@@ -217,10 +220,29 @@ class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
         if (snapshot.hasError) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                'Could not load upcoming distribution: '
-                '${snapshot.error}',
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_outlined, color: _muted, size: 42),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Upcoming relief could not be loaded.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _ink, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: _muted, fontSize: 12)),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => setState(
+                        () => future = Api.req('GET', '/family/distributions')),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Try again'),
+                  ),
+                ],
               ),
             ),
           );
@@ -244,13 +266,28 @@ class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: const [
-              SizedBox(height: 40),
-              Icon(Icons.event_busy_outlined, size: 56, color: _muted),
               SizedBox(height: 12),
+              _PageIntro(
+                icon: Icons.event_available_outlined,
+                eyebrow: 'Stay informed',
+                title: 'Upcoming relief',
+                subtitle:
+                    'See the latest distribution schedule for your family.',
+              ),
+              SizedBox(height: 36),
+              Icon(Icons.event_busy_outlined, size: 52, color: _muted),
+              SizedBox(height: 14),
               Text(
-                'No upcoming distributions scheduled',
+                'Nothing scheduled just yet',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _muted),
+                style: TextStyle(
+                    color: _ink, fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Pull down to refresh. New relief schedules will show here.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _muted, fontSize: 13, height: 1.4),
               ),
             ],
           );
@@ -267,6 +304,13 @@ class _UpcomingDistributionPageState extends State<UpcomingDistributionPage> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             children: [
+              const _PageIntro(
+                icon: Icons.event_available_outlined,
+                eyebrow: 'Stay informed',
+                title: 'Upcoming relief',
+                subtitle:
+                    'Tap a schedule to see details and claim information.',
+              ),
               ...rows.map<Widget>((d) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: GestureDetector(

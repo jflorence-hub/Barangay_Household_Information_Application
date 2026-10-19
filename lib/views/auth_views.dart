@@ -373,18 +373,18 @@ class _LoginPageState extends State<LoginPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const _FieldLabel('Email or phone number'),
+                            const _FieldLabel('Email / phone'),
                             const SizedBox(height: 6),
                             TextField(
                               controller: _phone,
                               keyboardType: TextInputType.text,
                               onSubmitted: (_) => _busy ? null : _login(),
                               decoration: const InputDecoration(
-                                hintText: 'your@email.com or 09XXXXXXXXX',
+                                hintText: 'Email or 09XXXXXXXXX',
                               ),
                             ),
                             const SizedBox(height: 14),
-                            const _FieldLabel('Family PIN / Member Password'),
+                            const _FieldLabel('PIN / password'),
                             const SizedBox(height: 6),
                             TextField(
                               controller: _pw,
@@ -392,8 +392,7 @@ class _LoginPageState extends State<LoginPage> {
                               keyboardType: TextInputType.visiblePassword,
                               onSubmitted: (_) => _busy ? null : _login(),
                               decoration: InputDecoration(
-                                hintText:
-                                    'Enter your family PIN or member password',
+                                hintText: 'Enter PIN or password',
                                 suffixIcon: IconButton(
                                   onPressed: () =>
                                       setState(() => _hidePIN = !_hidePIN),

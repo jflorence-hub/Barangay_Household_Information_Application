@@ -15,8 +15,45 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext c) => FutureBuilder(
         future: future,
         builder: (c, s) {
-          if (!s.hasData) {
+          if (s.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (s.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined,
+                        color: _muted, size: 42),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Your family profile could not be loaded.',
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(color: _ink, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      s.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: _muted, fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          setState(() => future = Api.req('GET', '/family/me')),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Try again'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          if (!s.hasData) {
+            return const Center(child: Text('Family profile is unavailable.'));
           }
           final f = s.data!['family'] as Map<String, dynamic>? ?? {};
           final members = s.data!['household_members'] as List? ?? [];
@@ -26,49 +63,61 @@ class _ProfilePageState extends State<ProfilePage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                const _PageIntro(
+                  icon: Icons.groups_2_outlined,
+                  eyebrow: 'Your household',
+                  title: 'Family profile',
+                  subtitle: 'Your household details and registered members.',
+                ),
                 // Avatar section
-                Center(
-                  child: Column(children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: _blue,
-                      child: Text(
-                        (f['head_name']?.toString() ?? 'F').isNotEmpty
-                            ? f['head_name']
-                                .toString()[0]
-                                .toUpperCase()
-                            : 'F',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700),
-                      ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 20),
+                    child: Center(
+                      child: Column(children: [
+                        CircleAvatar(
+                          radius: 38,
+                          backgroundColor: const Color(0xffdbeafe),
+                          child: Text(
+                            (f['head_name']?.toString() ?? 'F').isNotEmpty
+                                ? f['head_name'].toString()[0].toUpperCase()
+                                : 'F',
+                            style: const TextStyle(
+                                color: _blue,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          f['head_name']?.toString() ?? 'Family',
+                          style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              color: _ink),
+                        ),
+                        const SizedBox(height: 7),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                              color: const Color(0xffeff6ff),
+                              borderRadius: BorderRadius.circular(20),
+                              border:
+                                  Border.all(color: const Color(0xffbfdbfe))),
+                          child: Text(
+                            f['family_id']?.toString() ?? '',
+                            style: const TextStyle(
+                                color: _blue,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                letterSpacing: 0.3),
+                          ),
+                        ),
+                      ]),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      f['head_name']?.toString() ?? 'Family',
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: _ink),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: const Color(0xffeff6ff),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _blue)),
-                      child: Text(
-                        f['family_id']?.toString() ?? '',
-                        style: const TextStyle(
-                            color: _blue,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12),
-                      ),
-                    ),
-                  ]),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // Details card
@@ -78,16 +127,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(children: [
                       _FamilyDetailRow(
                           'Head of Family', f['head_name']?.toString()),
-                      _FamilyDetailRow(
-                          'Family ID', f['family_id']?.toString()),
+                      _FamilyDetailRow('Family ID', f['family_id']?.toString()),
                       _FamilyDetailRow('Household Members',
                           '${f['household_member'] ?? '—'} member(s)'),
                       _FamilyDetailRow(
                           'Purok', f['purok']?['name']?.toString()),
                       _FamilyDetailRow('Barangay / Location',
                           f['location']?['name']?.toString()),
-                      _FamilyDetailRow(
-                          'Status', f['status']?.toString()),
+                      _FamilyDetailRow('Status', f['status']?.toString()),
                     ]),
                   ),
                 ),
@@ -107,17 +154,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 12),
                         if (members.isEmpty)
                           const Text('No household members recorded.',
-                              style:
-                                  TextStyle(color: _muted, fontSize: 13))
+                              style: TextStyle(color: _muted, fontSize: 13))
                         else
                           ...members.map<Widget>((m) {
-                            final idx =
-                                m['number']?.toString() ?? '';
-                            final name = m['name']?.toString() ??
-                                'Member #$idx';
+                            final idx = m['number']?.toString() ?? '';
+                            final name =
+                                m['name']?.toString() ?? 'Member #$idx';
                             return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Row(
                                 children: [
                                   SizedBox(
@@ -142,8 +186,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 // Log Out button
                 OutlinedButton.icon(
                   onPressed: widget.onLogout,
-                  icon: const Icon(Icons.logout,
-                      color: Colors.red, size: 18),
+                  icon: const Icon(Icons.logout, color: Colors.red, size: 18),
                   label: const Text('Log Out',
                       style: TextStyle(color: Colors.red)),
                   style: OutlinedButton.styleFrom(
@@ -161,4 +204,3 @@ class _ProfilePageState extends State<ProfilePage> {
         },
       );
 }
-

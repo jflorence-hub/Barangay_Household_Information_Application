@@ -9,7 +9,6 @@ class FamilyHome extends StatefulWidget {
 
 class _FamilyHomeState extends State<FamilyHome> {
   int tab = 0;
-  Timer? _announcementTimer;
 
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
@@ -39,87 +38,61 @@ class _FamilyHomeState extends State<FamilyHome> {
     }
   }
 
-  Future<void> _checkAnnouncements() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastSeen = prefs.getInt('last_announcement_id') ?? 0;
-      final data = await Api.req('GET', '/family/announcements');
-      final list = (data['announcements'] as List? ?? []);
-      if (list.isEmpty) return;
-      // Find announcements newer than lastSeen
-      final newOnes =
-          list.where((a) => (a['id'] as int? ?? 0) > lastSeen).toList();
-      if (newOnes.isEmpty || !mounted) return;
-      // Update last_announcement_id to max id seen
-      final maxId = list
-          .map<int>((a) => a['id'] as int? ?? 0)
-          .reduce((a, b) => a > b ? a : b);
-      await prefs.setInt('last_announcement_id', maxId);
-      // Show a dialog for each new announcement
-      for (final ann in newOnes) {
-        if (!mounted) break;
-        await showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: Text(ann['title']?.toString() ?? 'Announcement'),
-            content: Text(ann['body']?.toString() ?? ''),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (_) {
-      // Silently ignore network/auth errors
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Check immediately on load
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAnnouncements());
-    // Then poll every 30 seconds
-    _announcementTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => _checkAnnouncements(),
+  void _openAnnouncements() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _FamilyAnnouncementsSheet(),
     );
   }
 
   @override
-  void dispose() {
-    _announcementTimer?.cancel();
-    super.dispose();
-  }
+  Widget build(BuildContext c) {
+    const titles = [
+      'Relief history',
+      'Upcoming relief',
+      'Family profile',
+      'Messages',
+      'Family QR',
+    ];
 
-  @override
-  Widget build(BuildContext c) => Scaffold(
+    return Scaffold(
       appBar: AppBar(
-          titleSpacing: 16,
-          title: Row(children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                  color: _blue, borderRadius: BorderRadius.circular(11)),
-              child: const Icon(Icons.house_rounded,
-                  color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 10),
-            Text(tab == 4 ? 'My QR Code' : 'My Home',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          ]),
-          actions: [
-            IconButton(
-              tooltip: 'Announcements',
-              icon: const Icon(Icons.notifications_none_rounded),
-              onPressed: () => _checkAnnouncements(),
-            ),
-          ]),
+        titleSpacing: 16,
+        title: Row(children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+                color: _blue, borderRadius: BorderRadius.circular(12)),
+            child:
+                const Icon(Icons.house_rounded, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 11),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Family Portal',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: _muted,
+                      fontWeight: FontWeight.w600)),
+              Text(titles[tab],
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ]),
+        actions: [
+          IconButton(
+            tooltip: 'Announcements',
+            icon: const Icon(Icons.campaign_outlined),
+            onPressed: _openAnnouncements,
+          ),
+        ],
+      ),
       body: IndexedStack(index: tab, children: [
         const RecordsPage(),
         const UpcomingDistributionPage(),
@@ -128,17 +101,31 @@ class _FamilyHomeState extends State<FamilyHome> {
         const FamilyQrPage(),
       ]),
       bottomNavigationBar: NavigationBar(
-          selectedIndex: tab,
-          onDestinationSelected: (v) => setState(() => tab = v),
-          destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.history), label: 'My Records'),
-            NavigationDestination(icon: Icon(Icons.event), label: 'Schedule'),
-            NavigationDestination(
-                icon: Icon(Icons.person_outline), label: 'Profile'),
-            NavigationDestination(
-                icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
-            NavigationDestination(
-                icon: Icon(Icons.qr_code_2_rounded), label: 'My QR'),
-          ]));
+        selectedIndex: tab,
+        onDestinationSelected: (v) => setState(() => tab = v),
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2_rounded),
+              label: 'Records'),
+          NavigationDestination(
+              icon: Icon(Icons.event_outlined),
+              selectedIcon: Icon(Icons.event_available_rounded),
+              label: 'Schedule'),
+          NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Profile'),
+          NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline),
+              selectedIcon: Icon(Icons.chat_bubble_rounded),
+              label: 'Messages'),
+          NavigationDestination(
+              icon: Icon(Icons.qr_code_2_outlined),
+              selectedIcon: Icon(Icons.qr_code_2_rounded),
+              label: 'My QR'),
+        ],
+      ),
+    );
+  }
 }

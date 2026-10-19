@@ -60,36 +60,73 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
                   FilledButton(onPressed: _load, child: const Text('Retry')),
                 ]))
               : qrCode.isEmpty
-                  ? const Center(
-                      child: Text(
-                          'QR code not available. Contact your administrator.'))
-                  : SafeArea(
-                      child: SingleChildScrollView(
+                  ? Center(
+                      child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(height: 16),
+                            const Icon(Icons.qr_code_2_rounded,
+                                color: Color(0xff94a3b8), size: 54),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Family QR code unavailable',
+                              style: TextStyle(
+                                  color: _ink,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Contact your barangay administrator for help.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: _muted, fontSize: 13),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: _load,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Try again'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SafeArea(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+                        child: Column(
+                          children: [
+                            const _PageIntro(
+                              icon: Icons.qr_code_2_rounded,
+                              eyebrow: 'Quick check-in',
+                              title: 'Your family QR',
+                              subtitle:
+                                  'Present this code to staff when collecting relief goods.',
+                            ),
                             Container(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(22),
+                                border:
+                                    Border.all(color: const Color(0xffe8edf5)),
                                 boxShadow: [
                                   BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.08),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 4))
+                                      color: const Color(0xff0f172a)
+                                          .withValues(alpha: 0.05),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 6))
                                 ],
                               ),
                               child: QrImageView(
                                 data: qrCode,
                                 version: QrVersions.auto,
-                                size: 240,
+                                size: 230,
                                 backgroundColor: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
@@ -121,15 +158,17 @@ class _FamilyQrPageState extends State<FamilyQrPage> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 18),
                             Text(familyName,
                                 style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.w800)),
+                                    fontSize: 20,
+                                    color: _ink,
+                                    fontWeight: FontWeight.w800)),
                             const SizedBox(height: 4),
                             Text(familyId,
                                 style: const TextStyle(
                                     fontSize: 14, color: Color(0xff64748b))),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 18),
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
